@@ -1,23 +1,26 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { Provider } from "react-redux";
-import store from "./redux/store"; 
-import MainPage from "./pages/MainPage";
-
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import CodeCollaborationPage from "./pages/CodeCollaborationPage";
+import KanbanPage from "./pages/KanbanPage";
+import ChatPage from "./pages/ChatPage";
+import Layout from "./pages/Layout";
 
 function App() {
-  
-   return (
-    <Provider store={store}>
-      <Router>
+  return (
+     <div className="flex flex-col h-screen">
+      <BrowserRouter>
         <Routes>
-         
-         <Route path="/" element={<MainPage />} />
-        
+          <Route path="/" element={<Navigate to="/kanban" />} />
+          <Route element={<Layout />}>
+            <Route index element={<CodeCollaborationPage />} />
+            <Route path="code-collaboration" element={<CodeCollaborationPage />} />
+            <Route path="kanban" element={<KanbanPage />} />
+            <Route path="chat" element={<ChatPage />} />
+          </Route>
         </Routes>
-      </Router>
-    </Provider>
+      </BrowserRouter>
+    </div>
   );
 }
 
-export default App
+export default App;
