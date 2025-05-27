@@ -4,10 +4,13 @@ const TaskSchema = new mongoose.Schema({
   title: { type: String, required: true },
   description: String,
   attachment: {
-    data: String,        // Base64 string
-    contentType: String  // e.g., image/png, application/pdf
+    data: String,        
+    contentType: String  
   },
-  assignee: String,
+  assignee: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: 'User',
+},
   deadline: Date,
   status: String,
 }, { timestamps: true });
