@@ -3,9 +3,13 @@
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
-    "mongoose": "^8.15.0"
+    "install": "^0.13.0",
+    "mongoose": "^8.15.0",
+    "npm": "^11.4.1",
+    "redis": "^5.1.1",
+    "ws": "^8.18.2"
   },
-   "scripts": {
+  "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js"
   },
