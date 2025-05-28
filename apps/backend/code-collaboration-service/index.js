@@ -1,22 +1,22 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-require('dotenv').config();
+import express from "express";
+import { createServer } from "http";
+import { WebSocketServer } from "ws";
+import cors from "cors";
+import dotenv from "dotenv";
+import roomRoutes from "./routes/roomRoutes.js";
+import { handleWebSocketConnection } from "./controller/websocketController.js";
 
 const app = express();
-
-app.use(cors({
-  origin: 'http://localhost:5173',
-  credentials: true
-}));
-
+const server = createServer(app);
+const wss = new WebSocketServer({ server });
+dotenv.config();
+app.use(cors());
 app.use(express.json());
 
-const PORT = process.env.PORT || 5000;
+app.use("/room", roomRoutes);
 
+handleWebSocketConnection(wss);
 
-app.get('/', (req, res) => {
-  res.send('API is running...');
+server.listen(process.env.PORT, "0.0.0.0", () => {
+  console.log(`Server running on port ${process.env.PORT} ✅`);
 });
-
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
