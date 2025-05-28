@@ -7,7 +7,7 @@ function setupSocket(io) {
 
   sub.subscribe('taskCreated', (message) => {
     const task = JSON.parse(message);
-    io.emit('taskCreated', task); // 🔊 emit to all connected clients
+    io.emit('taskCreated', task);
   });
 }
 
