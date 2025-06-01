@@ -13,16 +13,13 @@ export default function KanbanPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
 
-  // New modal states for adding column
-  const [showAddColumnModal, setShowAddColumnModal] = useState(false);
-  const [newColumnName, setNewColumnName] = useState('');
-
+  // Initial fetch
   useEffect(() => {
     const fetchData = async () => {
       try {
         const [columnsRes, tasksRes] = await Promise.all([
-          fetch("/api/columns"),
-          fetch("/api/tasks"),
+          fetch("http://localhost:5000/api/columns"),
+          fetch("http://localhost:5000/api/tasks"),
         ]);
 
         const columnsData = await columnsRes.json();
@@ -49,7 +46,7 @@ export default function KanbanPage() {
     fetchData();
   }, []);
 
-  // Socket listeners
+  // WebSocket real-time listeners
   useEffect(() => {
     socket.on('taskCreated', (newTask) => {
       setColumns((prev) =>
@@ -65,9 +62,11 @@ export default function KanbanPage() {
       setColumns((prev) =>
         prev.map((col) => {
           const filteredTasks = col.tasks.filter(task => task._id !== updatedTask._id);
+
           if (col.title.toLowerCase() === updatedTask.status?.toLowerCase()) {
             return { ...col, tasks: [...filteredTasks, updatedTask] };
           }
+
           return { ...col, tasks: filteredTasks };
         })
       );
@@ -90,19 +89,18 @@ export default function KanbanPage() {
   }, []);
 
   const addColumn = async () => {
-    if (!newColumnName.trim()) return;
+    const name = prompt("Enter column name:");
+    if (!name) return;
 
     try {
-      const response = await fetch("/api/columns", {
+      const response = await fetch("http://localhost:5000/api/columns", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newColumnName }),
+        body: JSON.stringify({ name }),
       });
 
       const newColumn = await response.json();
       setColumns(prev => [...prev, { id: newColumn._id, title: newColumn.name, tasks: [] }]);
-      setNewColumnName('');
-      setShowAddColumnModal(false);
     } catch (error) {
       console.error("Error creating column:", error);
     }
@@ -116,7 +114,8 @@ export default function KanbanPage() {
     const destColIndex = columns.findIndex(c => c.id === destination.droppableId);
     const movedTask = columns[sourceColIndex].tasks[source.index];
 
-    fetch(`/api/tasks/${movedTask._id}`, {
+    // Only update backend — let WebSocket update UI
+    fetch(`http://localhost:5000/api/tasks/${movedTask._id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: columns[destColIndex].title }),
@@ -129,7 +128,13 @@ export default function KanbanPage() {
     <div className="p-6 min-h-screen bg-[#f5f5f5] dark:bg-[#1b1b1b] text-black dark:text-white transition-colors duration-300">
       <h1 className="text-3xl font-bold mb-6">Board</h1>
 
-      <div className="flex justify-end mb-6">
+      <div className="flex gap-3 mb-6">
+        <Input
+          value={taskTitle}
+          onChange={(e) => setTaskTitle(e.target.value)}
+          placeholder="Search..."
+          className="bg-white dark:bg-black"
+        />
         <Button onClick={() => setShowCreateModal(true)}>Create Task</Button>
       </div>
 
@@ -187,7 +192,7 @@ export default function KanbanPage() {
           {/* Add Column Button */}
           <div className="flex items-center justify-center min-w-[250px]">
             <button
-              onClick={() => setShowAddColumnModal(true)}
+              onClick={addColumn}
               className="w-10 h-10 text-3xl font-bold text-white bg-gray-600 hover:bg-gray-700 rounded-full"
               title="Add column"
             >
@@ -201,7 +206,7 @@ export default function KanbanPage() {
       {showCreateModal && (
         <CreateTaskModal
           onClose={() => setShowCreateModal(false)}
-          onSuccess={() => setShowCreateModal(false)}
+          onSuccess={() => setShowCreateModal(false)} // real-time handled by socket
         />
       )}
 
@@ -219,36 +224,6 @@ export default function KanbanPage() {
             )
           }
         />
-      )}
-
-      {/* Add Column Modal */}
-      {showAddColumnModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl text-center max-w-sm w-full">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Add New Column</h3>
-            <input
-              type="text"
-              value={newColumnName}
-              onChange={(e) => setNewColumnName(e.target.value)}
-              placeholder="Column name"
-              className="w-full px-4 py-2 rounded border dark:bg-gray-700 dark:text-white dark:border-gray-600"
-            />
-            <div className="flex justify-center gap-4 mt-6">
-              <button
-                onClick={() => setShowAddColumnModal(false)}
-                className="bg-gray-300 hover:bg-gray-400 text-black px-4 py-2 rounded"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={addColumn}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
-              >
-                Add
-              </button>
-            </div>
-          </div>
-        </div>
       )}
     </div>
   );

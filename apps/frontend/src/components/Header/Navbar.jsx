@@ -1,12 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import SideBar from './SideBar';
 import { FaSignOutAlt, FaUserCircle } from "react-icons/fa";
 import { MdSettings } from "react-icons/md";
 import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { logout } from "../../redux/slices/authSlice";
 import logo from '../../assets/logo.png'; 
 import network from '../../assets/network.png';
+
 export default function NavBar() {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+
+  const currentUser = useSelector((state) => state.auth.user); // ✅ Redux user
+
+  // ✅ Log user info when NavBar mounts or user changes
+  useEffect(() => {
+    if (currentUser) {
+      console.log(`✅ Logged in as: ${currentUser.name || currentUser.username}`);
+    }
+  }, [currentUser]);
 
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -37,9 +50,12 @@ export default function NavBar() {
       label: 'Sign out',
       icon: <FaSignOutAlt style={{ fontSize: '18px' }} />,
       onClick: () => {
-        console.log("Signing out...");
+        dispatch(logout());
+        console.log("🚪 User logged out.");
+        navigate("/");
       },
     },
+    
   ];
 
   return (
@@ -51,14 +67,12 @@ export default function NavBar() {
         ></div>
       )}
 
-     
       <SideBar
         isSidebarOpen={isSidebarOpen}
         setIsSidebarOpen={setIsSidebarOpen}
         setIsUserMenuOpen={setIsUserMenuOpen}
       />
 
-     
       <nav className="fixed top-0 left-0 right-0 z-50 bg-[#282828] border-b border-[#303030] dark:bg-darkNavbar dark:border-darkNavbar text-gray-700 dark:text-gray-300">
         <div className="px-3 py-3 lg:px-5 lg:pl-3">
           <div className="flex items-center justify-between">
@@ -77,7 +91,6 @@ export default function NavBar() {
                 </svg>
               </button>
               <a href="/" className="flex items-center ms-2">
-               
                 <img src={network} className="h-8 me-3" alt="Logo" />
                 <span className="self-center text-xl font-semibold whitespace-nowrap dark:text-white">
                   BitBoard
@@ -103,7 +116,6 @@ export default function NavBar() {
                 )}
               </button>
 
-            
               {isUserMenuOpen && (
                 <div className="absolute top-14 right-4 z-50 w-48 bg-[#282828] rounded-lg shadow-md dark:bg-[#282828]">
                   <ul className="py-2">
