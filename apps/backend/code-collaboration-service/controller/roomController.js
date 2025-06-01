@@ -1,4 +1,6 @@
 import { redis } from "../config/redisClient.js";
+import jwt from 'jsonwebtoken';
+
 import { generateRoomName, generateUserId , removeUserFromAllRooms, cleanEmptyRoom } from "../utils/roomUtils.js";
 
 export const createRoom = async (req, res) => {
@@ -14,7 +16,18 @@ export const createRoom = async (req, res) => {
   await redis.set(`room:${roomId}`, JSON.stringify([{ userId, name }]));
   await redis.set(`roomName:${roomId}`, roomName);
 
-  res.status(200).json({userId, name, roomId, roomName: roomName, message: "Room created" });
+  
+  const token = generateWebsocketToken(userId, roomId);
+    console.log("JWT_SECRET in token generation:", JSON.stringify(process.env.JWT_SECRET));
+
+  res.status(200).json(
+    {
+        userId,
+        name,
+        roomId,
+        roomName: roomName, 
+        websocketToken: token, 
+        message: "Room created" });
 };
 
 export const joinRoom = async (req, res) => {
@@ -33,15 +46,30 @@ export const joinRoom = async (req, res) => {
         const roomData = await redis.get(roomKey);
         const room = roomData ? JSON.parse(roomData) : [];
 
+        const joinTimestamp = Date.now();
+
         if (!room.some((u) => u.userId === userId)) {
-            room.push({ userId, name });
+            room.push({ userId, name, joinTimestamp  });
             await redis.set(roomKey, JSON.stringify(room));
         }
 
         const roomName = await redis.get(roomNameKey);
 
-        res.status(200).json({ message: "User joined room",userId, users: room, roomId, roomName: roomName });
+        res.status(200).json(
+            { 
+                message: "User joined room",
+                userId,
+                users: room,
+                roomId,
+                roomName: roomName,
+                websocketToken: generateWebsocketToken(userId, roomId)
+                });
 };
+    // Add this helper function
+    function generateWebsocketToken(userId, roomId) {
+    return jwt.sign({ userId, roomId }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    }
+
 
 export const leaveRoom = async (req, res) => {
   const { roomId, userId } = req.body;
