@@ -34,10 +34,6 @@ if (cluster.isPrimary) {
     process.exit(1);
   }
 
-
-  
-
-  // Fork workers for code execution
   for (let i = 0; i < os.cpus().length; i++) {
     cluster.fork({ TYPE: 'WORKER' });
   }
@@ -47,7 +43,6 @@ if (cluster.isPrimary) {
     cluster.fork();
   });
 
-  // Start HTTP server in primary process
   server.listen(process.env.PORT, "0.0.0.0", () => {
     console.log(`Server running on port ${process.env.PORT} ✅`);
   });

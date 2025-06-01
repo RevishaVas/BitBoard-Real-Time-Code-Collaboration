@@ -3,10 +3,9 @@ import { cleanEmptyRoom } from "../utils/roomUtils.js";
 import { wsRooms, subscriptions } from "../utils/wsState.js";
 import jwt from 'jsonwebtoken';
 
-// Track all active connections to prevent duplicates
 const activeConnections = new Map();
 
-// Enhanced room state with history tracking
+
 const roomStates = {};
 
 export function handleWebSocketConnection(wss) {
@@ -15,8 +14,6 @@ export function handleWebSocketConnection(wss) {
     // const roomId = query.get("roomId");
     // const userId = query.get("userId");
     // const name = query.get("name");
-
-
     const token = query.get("token");
   
   try {
@@ -26,7 +23,7 @@ export function handleWebSocketConnection(wss) {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const { userId, roomId } = decoded;
     
-    // Get name from Redis room data
+
     const roomData = await redis.get(`room:${roomId}`);
     const users = JSON.parse(roomData);
     const user = users.find(u => u.userId === userId);
@@ -36,20 +33,13 @@ export function handleWebSocketConnection(wss) {
       return;
     }
 
-    // Continue with connection...
     const name = user.name;
 
-
-
-
-
-    // Validate all required parameters
     if (!roomId || !userId || !name) {
       ws.close(4000, "Missing required parameters");
       return;
     }
 
-    // Check if user already has an active connection
     if (activeConnections.has(userId)) {
       ws.close(4001, "User already connected from another device");
       return;
@@ -57,30 +47,26 @@ export function handleWebSocketConnection(wss) {
 
     console.log(`[WS] ${name} (${userId}) connecting to room ${roomId}`);
 
-    // Initialize room state if not exists
     if (!roomStates[roomId]) {
       roomStates[roomId] = {
         users: [],
         code: "",
         language: "javascript",
         input: "",
-        history: [], // Track all code changes
+        history: [],
         lastActivity: Date.now()
       };
     }
 
     const room = roomStates[roomId];
 
-    // Remove any existing connection for this user
     room.users = room.users.filter(u => u.userId !== userId);
     
-    // Add new connection
     const userObj = { userId, name, ws };
     room.users.push(userObj);
     activeConnections.set(userId, { ws, roomId });
     room.lastActivity = Date.now();
 
-    // Send initial room info
     ws.send(JSON.stringify({
       type: "roomInfo",
       roomId,
@@ -88,20 +74,17 @@ export function handleWebSocketConnection(wss) {
       message: room.users.length === 1 ? "Room created" : "Room joined"
     }));
 
-    // Send complete room state including history
     ws.send(JSON.stringify({
       type: "roomState",
       code: room.code,
       language: room.language,
       input: room.input,
-      history: room.history, // Send all historical changes
+      history: room.history, 
       users: room.users.map(u => ({ userId: u.userId, name: u.name }))
     }));
 
-    // Broadcast updated user list
     broadcastUsersList(roomId);
 
-    // Setup Redis subscription if not exists
     if (!subscriptions.has(roomId)) {
       await sub.subscribe(roomId, (message) => {
         if (!roomStates[roomId]) return;
@@ -117,7 +100,6 @@ export function handleWebSocketConnection(wss) {
       subscriptions.add(roomId);
     }
 
-    // Handle incoming messages
     ws.on("message", (msg) => {
       try {
         const data = JSON.parse(msg.toString());
@@ -126,7 +108,7 @@ export function handleWebSocketConnection(wss) {
         switch (data.type) {
           case "code":
             room.code = data.code;
-            room.history.push({ // Add to history
+            room.history.push({ 
               type: "code",
               code: data.code,
               sender: userId,
@@ -153,7 +135,6 @@ export function handleWebSocketConnection(wss) {
       }
     });
 
-    // Connection health monitoring
     const pingInterval = setInterval(() => {
       if (ws.readyState === ws.OPEN) {
         ws.ping();
@@ -166,19 +147,16 @@ export function handleWebSocketConnection(wss) {
       room.lastActivity = Date.now();
     });
 
-    // Handle connection close
     ws.on("close", () => {
       clearInterval(pingInterval);
       console.log(`[WS] ${name} (${userId}) disconnected`);
-      
-      // Clean up connections
+
       activeConnections.delete(userId);
       
       if (roomStates[roomId]) {
         roomStates[roomId].users = roomStates[roomId].users.filter(u => u.userId !== userId);
         broadcastUsersList(roomId);
         
-        // Cleanup empty rooms after delay
         if (roomStates[roomId].users.length === 0) {
           setTimeout(async () => {
             if (roomStates[roomId]?.users.length === 0) {
@@ -201,7 +179,6 @@ export function handleWebSocketConnection(wss) {
   }
   });
 
-  // Periodic cleanup of inactive rooms
   setInterval(() => {
     const now = Date.now();
     Object.entries(roomStates).forEach(([roomId, room]) => {
@@ -213,7 +190,6 @@ export function handleWebSocketConnection(wss) {
   }, 30000);
 }
 
-// Helper functions
 function broadcastUsersList(roomId) {
   if (!roomStates[roomId]) return;
   const users = roomStates[roomId].users.map(({ userId, name }) => ({ userId, name }));

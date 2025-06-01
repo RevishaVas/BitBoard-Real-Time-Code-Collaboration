@@ -65,7 +65,7 @@ export const joinRoom = async (req, res) => {
                 websocketToken: generateWebsocketToken(userId, roomId)
                 });
 };
-    // Add this helper function
+   
     function generateWebsocketToken(userId, roomId) {
     return jwt.sign({ userId, roomId }, process.env.JWT_SECRET, { expiresIn: '1h' });
     }
@@ -85,7 +85,7 @@ export const leaveRoom = async (req, res) => {
   const updatedRoom = room.filter((u) => u.userId !== userId);
   await redis.set(roomKey, JSON.stringify(updatedRoom));
 
-  // If no users left, delete the room
+
   if (updatedRoom.length === 0) {
     await cleanEmptyRoom(roomId);
   }
