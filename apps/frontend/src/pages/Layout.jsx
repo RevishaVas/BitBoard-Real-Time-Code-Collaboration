@@ -28,7 +28,16 @@ const Layout = () => {
 
   return (
     <>
-    <div className='w-full h-screen flex flex-col md:flex-row'>
+    <div className='w-full h-screen flex flex-col md:flex-row bg-[#f5f5f5] dark:bg-[#1b1b1b]'>
+      <NavBar />
+      
+      <div className='flex-1 overflow-y-auto pt-16 sm:pt-0 sm:ml-64'>
+        <div className='p-4 2xl:px-10 h-full'>
+          <Outlet />
+        </div>
+      </div>
+    </div>
+    {/* <div className='w-full h-screen flex flex-col md:flex-row'>
 
     <div className='flex-1 overflow-y-auto'>
       <NavBar />
@@ -38,7 +47,7 @@ const Layout = () => {
      
       </div>
     </div>
-  </div>
+  </div> */}
     </>
   )
 
