@@ -11,6 +11,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Navigate to="/kanban" />} />
+          <Route path="/code/:roomId" element={<CodeCollaborationPage />} />
           <Route element={<Layout />}>
             <Route index element={<CodeCollaborationPage />} />
             <Route path="code-collaboration" element={<CodeCollaborationPage />} />
