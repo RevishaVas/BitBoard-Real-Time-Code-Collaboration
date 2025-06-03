@@ -1,5 +1,5 @@
 const { createClient } = require('redis');
-require('dotenv').config(); // If using .env
+require('dotenv').config();
 
 const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
 
@@ -10,7 +10,6 @@ const sub = pub.duplicate(); // For subscribing
 pub.connect();
 sub.connect();
 
-// Optional: logging
 pub.on('connect', () => console.log('Redis PUB connected'));
 sub.on('connect', () => console.log('Redis SUB connected'));
 

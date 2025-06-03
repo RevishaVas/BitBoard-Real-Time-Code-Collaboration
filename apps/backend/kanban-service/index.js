@@ -54,7 +54,7 @@ sub.subscribe('taskDeleted', (msg) => {
   io.emit('taskDeleted', { id });
 });
 
-// Optional Redis test
+// Redis test
 sub.subscribe('testChannel', (msg) => {
   console.log('Redis Received:', msg);
 });
