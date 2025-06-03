@@ -28,7 +28,7 @@ const Layout = () => {
 
   return (
     <>
-    <div className='w-full h-screen flex flex-col md:flex-row bg-[#f5f5f5] dark:bg-[#1b1b1b]'>
+    <div className='w-full h-screen flex flex-col md:flex-row bg-[#1b1b1b] dark:bg-[#1b1b1b]'>
       <NavBar />
       
       <div className='flex-1 overflow-y-auto pt-16 sm:pt-0 sm:ml-64'>

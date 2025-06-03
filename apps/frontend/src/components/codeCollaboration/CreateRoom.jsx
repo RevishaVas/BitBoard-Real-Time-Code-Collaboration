@@ -10,7 +10,7 @@ import PropTypes from 'prop-types';
 const CreateRoom = ({ onRoomCreated }) => {
   const [name, setName] = useState("");
   const [roomId, setRoomId] = useState("");
-  const [mode, setMode] = useState(null); // 'create' or 'join'
+  const [mode, setMode] = useState(null); 
   
   const [nameError, setNameError] = useState("");
   const [roomIdError, setRoomIdError] = useState("");
@@ -100,7 +100,7 @@ const CreateRoom = ({ onRoomCreated }) => {
     
     if (isProcessing) return;
     
-    // initializeSocket();
+    
     if (onRoomCreated) {
       onRoomCreated("");
     }
@@ -128,7 +128,7 @@ const CreateRoom = ({ onRoomCreated }) => {
 
     if (isProcessing) return;
 
-    // initializeSocket();
+  
     if (onRoomCreated) {
       onRoomCreated("");
     }
