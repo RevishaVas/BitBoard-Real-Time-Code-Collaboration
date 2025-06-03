@@ -1,7 +1,17 @@
+// src/redux/slices/authSlice.js
 import { createSlice } from '@reduxjs/toolkit';
 
+let parsedUser = null;
+try {
+  const storedUser = localStorage.getItem('userInfo');
+  parsedUser = storedUser ? JSON.parse(storedUser) : null;
+} catch (error) {
+  console.error("Invalid userInfo in localStorage:", error);
+  localStorage.removeItem('userInfo');
+}
+
 const initialState = {
-  user: JSON.parse(localStorage.getItem('userInfo')) || null,
+  user: parsedUser,
   isSidebarOpen: false,
 };
 
@@ -11,11 +21,11 @@ const authSlice = createSlice({
   reducers: {
     setCredentials: (state, action) => {
       state.user = action.payload;
-      localStorage.setItem('userInfo', JSON.stringify(action.payload)); 
+      localStorage.setItem('userInfo', JSON.stringify(action.payload));
     },
     logout: (state) => {
       state.user = null;
-      localStorage.removeItem('userInfo'); 
+      localStorage.removeItem('userInfo');
     },
     setOpenSidebar: (state, action) => {
       state.isSidebarOpen = action.payload;
@@ -24,5 +34,4 @@ const authSlice = createSlice({
 });
 
 export const { setCredentials, logout, setOpenSidebar } = authSlice.actions;
-
 export default authSlice.reducer;

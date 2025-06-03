@@ -1,29 +1,90 @@
-import React, { useState, useEffect } from 'react';
+// import React from 'react';
+
+// export default function TaskDetailsModal({ task, onClose }) {
+//   if (!task) return null;
+
+//   return (
+//     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+//       <div className="bg-white dark:bg-gray-900 text-black dark:text-white p-6 rounded-lg w-full max-w-md">
+//         <h2 className="text-xl font-bold mb-4">Task Details</h2>
+//         <div className="space-y-2">
+//           <p><strong>Title:</strong> {task.title}</p>
+//           <p><strong>Description:</strong> {task.description || '—'}</p>
+//           <p><strong>Assignee:</strong> {task.assignee || '—'}</p>
+//           <p><strong>Status:</strong> {task.status || '—'}</p>
+//           <p><strong>Deadline:</strong> {task.deadline ? new Date(task.deadline).toLocaleDateString() : '—'}</p>
+//           {task.attachment && (
+//             <div>
+//               <strong>Attachment:</strong>
+//               <p className="text-sm italic text-gray-500">(stored as base64, not viewable here)</p>
+//             </div>
+//           )}
+//         </div>
+
+//         <div className="mt-6 text-right">
+//           <button onClick={onClose} className="bg-blue-600 text-white px-4 py-2 rounded">Close</button>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
+
+
+// import React from 'react';
+
+// export default function TaskDetailsModal({ task, onClose }) {
+//   if (!task) return null;
+
+//   // Helper to generate image URL from base64
+//   const getImageSrc = () => {
+//     if (task.attachment?.data && task.attachment?.contentType?.startsWith("image")) {
+//       return `data:${task.attachment.contentType};base64,${task.attachment.data}`;
+//     }
+//     return null;
+//   };
+
+//   return (
+//     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+//       <div className="bg-white dark:bg-gray-900 text-black dark:text-white p-6 rounded-lg w-full max-w-md">
+//         <h2 className="text-xl font-bold mb-4">Task Details</h2>
+//         <div className="space-y-2">
+//           <p><strong>Title:</strong> {task.title}</p>
+//           <p><strong>Description:</strong> {task.description || '—'}</p>
+//           <p><strong>Assignee:</strong> {task.assignee || '—'}</p>
+//           <p><strong>Status:</strong> {task.status || '—'}</p>
+//           <p><strong>Deadline:</strong> {task.deadline ? new Date(task.deadline).toLocaleDateString() : '—'}</p>
+//           {task.attachment ? (
+//             getImageSrc() ? (
+//               <div>
+//                 <strong>Attachment:</strong>
+//                 <img
+//                   src={getImageSrc()}
+//                   alt="attachment"
+//                   className="mt-2 rounded border max-h-48 object-contain"
+//                 />
+//               </div>
+//             ) : (
+//               <div>
+//                 <strong>Attachment:</strong>
+//                 <p className="text-sm italic text-gray-500">(Attached file is not an image)</p>
+//               </div>
+//             )
+//           ) : null}
+//         </div>
+
+//         <div className="mt-6 text-right">
+//           <button onClick={onClose} className="bg-blue-600 text-white px-4 py-2 rounded">Close</button>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
+
+
+import React, { useState } from 'react';
 
 export default function TaskDetailsModal({ task, onClose, onDelete }) {
   const [showConfirm, setShowConfirm] = useState(false);
-  const [assigneeName, setAssigneeName] = useState(null);
-
-  useEffect(() => {
-    const fetchAssigneeName = async () => {
-      if (!task?.assignee) return;
-
-      try {
-        const response = await fetch(`/api/users/${task.assignee}`);
-        if (response.ok) {
-          const user = await response.json();
-          setAssigneeName(user.name); // or user.fullName based on your schema
-        } else {
-          setAssigneeName("Unknown User");
-        }
-      } catch (err) {
-        console.error("Failed to fetch assignee name:", err);
-        setAssigneeName("Unknown User");
-      }
-    };
-
-    fetchAssigneeName();
-  }, [task]);
 
   if (!task) return null;
 
@@ -57,10 +118,9 @@ export default function TaskDetailsModal({ task, onClose, onDelete }) {
           <div className="space-y-2">
             <p><strong>Title:</strong> {task.title}</p>
             <p><strong>Description:</strong> {task.description || '—'}</p>
-            <p><strong>Assignee:</strong> {assigneeName || 'Loading...'}</p>
+            <p><strong>Assignee:</strong> {task.assignee || '—'}</p>
             <p><strong>Status:</strong> {task.status || '—'}</p>
             <p><strong>Deadline:</strong> {task.deadline ? new Date(task.deadline).toLocaleDateString() : '—'}</p>
-            <p><strong>Task created at:</strong> {task.createdAt ? new Date(task.createdAt).toLocaleString() : '—'}</p>
             {task.attachment ? (
               getImageSrc() ? (
                 <div>
@@ -85,7 +145,7 @@ export default function TaskDetailsModal({ task, onClose, onDelete }) {
               onClick={() => setShowConfirm(true)}
               className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded shadow-md"
             >
-              Delete Task
+              Delete
             </button>
             <button
               onClick={onClose}
