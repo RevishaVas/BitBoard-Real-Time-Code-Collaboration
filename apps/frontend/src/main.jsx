@@ -8,8 +8,13 @@ import { ThemeProvider } from "next-themes";
 import { Provider } from "react-redux";
 import { RecoilRoot } from "recoil";
 
-createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
+
+import store from "./redux/store.js";
+import { Provider } from "react-redux";
+import { ThemeProvider } from "next-themes";
+
+createRoot(document.getElementById("root")).render(
+  <StrictMode>
     <Provider store={store}>
       <RecoilRoot>
         <ThemeProvider defaultTheme="dark" attribute="class">
@@ -17,5 +22,5 @@ createRoot(document.getElementById('root')).render(
         </ThemeProvider>
       </RecoilRoot>
     </Provider>
-  </React.StrictMode>
-)
+  </StrictMode>
+);

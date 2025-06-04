@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
+    "@hello-pangea/dnd": "^18.0.1",
     "@reduxjs/toolkit": "^2.8.2",
     "clsx": "^2.1.1",
     "next-themes": "^0.4.6",
@@ -21,7 +22,9 @@
     "react-icons": "^5.5.0",
     "react-redux": "^9.2.0",
     "react-router-dom": "^7.6.0",
-    "recoil": "^0.7.7"
+    "recoil": "^0.7.7",
+    "socket.io-client": "^4.8.1"
+
   },
   "devDependencies": {
     "@eslint/js": "^9.27.0",
@@ -35,7 +38,7 @@
     "eslint-plugin-react-refresh": "^0.4.19",
     "globals": "^16.1.0",
     "postcss": "^8.5.3",
-    "tailwindcss": "^3.4.3",
+    "tailwindcss": "^3.4.17",
     "vite": "^6.3.5"
   }
 }
