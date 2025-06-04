@@ -14,7 +14,10 @@ export default function CodeCollaborationPage() {
   return (
    <div>
       {roomCreated ? (
-        <CodeEditor roomId={roomId} />
+        <div className='flex flex-col p-2 overflow-hidden'>
+            <CodeEditor roomId={roomId} />
+        </div>
+        
       ) : (
         <CreateRoom onRoomCreated={handleRoomCreated} />
       )}
