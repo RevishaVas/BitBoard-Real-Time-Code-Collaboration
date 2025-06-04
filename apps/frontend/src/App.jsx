@@ -14,7 +14,7 @@ const App = () => {
   return (
   <div className="flex flex-col h-screen">
       <BrowserRouter>
-        {!currentUser ? (
+        {currentUser ? (
           <DummyUserLogin />
         ) : (
           <Routes>
