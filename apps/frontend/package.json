@@ -23,7 +23,6 @@
     "react-router-dom": "^7.6.0",
     "recoil": "^0.7.7",
     "socket.io-client": "^4.8.1"
-
   },
   "devDependencies": {
     "@eslint/js": "^9.27.0",
