@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const users = require('./dummyUsers');
-const User = require('./model/User');
+const User = require('../model/User');
 
 // Use your actual Mongo URI here if needed
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/tasksDB';

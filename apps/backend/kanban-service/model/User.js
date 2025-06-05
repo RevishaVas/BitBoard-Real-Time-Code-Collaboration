@@ -5,7 +5,7 @@ const userSchema = new mongoose.Schema({
   dob: String,
   role: {
     type: String,
-    enum: ['developer', 'collaborator', 'project member', 'project manager'],
+    enum: ['admin', 'guest'],
   },
 }, { collection: 'Users' });
 
