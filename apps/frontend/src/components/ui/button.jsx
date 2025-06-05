@@ -10,7 +10,7 @@ export function Button({ children, onClick, size = 'md', className = '', ...prop
   return (
     <button
       onClick={onClick}
-      className={`bg-blue-600 text-white rounded-xl shadow hover:bg-blue-700 transition ${sizes[size]} ${className}`}
+      className={` text-white rounded-xl shadow bg-green-600 hover:bg-green-700 transition ${sizes[size]} ${className}`}
       {...props}
     >
       {children}
