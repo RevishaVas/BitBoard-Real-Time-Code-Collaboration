@@ -16,6 +16,7 @@ const LoginPage = () => {
 
   const handleLogin = () => {
     const user = users.find((u) => u._id === selectedUserId);
+    console.log("Users= "+ user);
     if (user) {
       localStorage.setItem('user', JSON.stringify(user));
       navigate('/kanban');
