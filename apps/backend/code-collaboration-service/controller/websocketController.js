@@ -64,7 +64,7 @@ export function handleWebSocketConnection(wss) {
       roomStates[roomId] = {
         users: [],
         code: parsed.code || "",
-        language: parsed.language || "javascript",
+        language: parsed.language || "python",
         input: parsed.input || "",
         history: [],
         lastActivity: Date.now()
@@ -73,7 +73,7 @@ export function handleWebSocketConnection(wss) {
       roomStates[roomId] = {
         users: [],
         code: "",
-        language: "javascript",
+        language: "python",
         input: "",
         history: [],
         lastActivity: Date.now()

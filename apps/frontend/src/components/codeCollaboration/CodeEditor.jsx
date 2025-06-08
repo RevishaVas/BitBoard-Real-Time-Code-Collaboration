@@ -13,50 +13,48 @@ import CodeCollaborationPage from "../../pages/CodeCollaborationPage.jsx"
 
 const CodeEditor = () => {
    const [code, setCode] = useState("# Write your code here...");
-  const [language, setLanguage] = useState("python");
-  const [output, setOutput] = useState([]); // Output logs
+  const [language, setLanguage] = useState("Python");
+  const [output, setOutput] = useState([]); 
   const [socket, setSocket] = useRecoilState(socketAtom);
   const [isLoading, setIsLoading] = useState(false);
   const [currentButtonState, setCurrentButtonState] = useState("Submit Code");
-  const [input, setInput] = useState(""); // Input for code
+  const [input, setInput] = useState(""); 
   const [user, setUser] = useRecoilState(userAtom);
   const navigate = useNavigate();
 
-  // multiplayer state
   const [connectedUsers, setConnectedUsers] = useRecoilState(connectedUsersAtom);
   const parms = useParams();
   const [submitCode] = useSubmitCodeMutation();
 
  
-// Enhance the safeSend function
 const safeSend = useCallback((data) => {
   if (socket && socket.readyState === WebSocket.OPEN) {
     try {
       socket.send(JSON.stringify(data));
     } catch (err) {
       console.error("Error sending WebSocket message:", err);
-      // Implement retry logic or error handling
+      
     }
   } else {
     console.warn("WebSocket not ready, queuing message:", data);
-    // Optionally queue messages and send when connection is restored
+    
   }
 }, [socket]);
 
-// Add this to CodeEditor.jsx to monitor connection
+
 useEffect(() => {
   if (socket) {
     const interval = setInterval(() => {
       if (socket.readyState === WebSocket.CLOSED) {
         console.log("WebSocket disconnected, attempting reconnect...");
-        // Implement reconnect logic if needed
+      
          connectWebSocket();
       }
     }, 5000);
     return () => clearInterval(interval);
   }
 }, [socket]);
-// Add this useEffect to handle incoming code changes
+
 useEffect(() => {
   if (socket) {
     const handleCodeChange = (event) => {
@@ -76,7 +74,7 @@ useEffect(() => {
     };
   }
 }, [socket, user.id]);
-// Add this useEffect for output synchronization
+
 useEffect(() => {
   if (socket) {
     const handleOutput = (event) => {
@@ -328,10 +326,10 @@ useEffect(() => {
                 <h2 className="text-lg lg:text-xl font-bold text-gray-400">
                   Users:
                 </h2>
-                <div className="bg-[#1f1f1f] text-green-400 p-4 rounded-lg mt-2 overflow-y-auto shadow-lg max-h-40 lg:max-h-60">
+                <div className="bg-[#2e2e2e] text-green-400 p-4 rounded-lg mt-2 overflow-y-auto shadow-lg max-h-40 lg:max-h-60">
                   {connectedUsers.length > 0 ? (
                     connectedUsers.map((user, index) => (
-                      <div key={index} className="flex items-center space-x-2">
+                      <div key={index} className="flex items-center space-x-2 mt-2">
                         <div className="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center">
                           {user.name.charAt(0).toUpperCase()}
                         </div>
@@ -352,7 +350,7 @@ useEffect(() => {
                 <h2 className="text-lg lg:text-xl font-bold text-gray-400">
                   Invitation Code:
                 </h2>
-                <div className="bg-[#1f1f1f] text-green-400 p-4 rounded-lg mt-2 overflow-y-auto shadow-lg max-h-40 lg:max-h-60">
+                <div className="bg-[#2e2e2e] text-green-400 p-4 rounded-lg mt-2 overflow-y-auto shadow-lg max-h-40 lg:max-h-60">
                   {user.roomId.length > 0 ? (
                     <pre className="whitespace-pre-wrap text-sm lg:text-base">
                       {user.roomId}
@@ -376,7 +374,7 @@ useEffect(() => {
                 </button>
               </div>
 
-              <div className="bg-[#1f1f1f] text-green-400 p-4 max-h-[60vh] rounded-lg mt-2 h-full overflow-y-auto shadow-lg space-y-2 text-sm lg:text-base">
+              <div className="bg-[#2e2e2e] text-green-400 p-4 max-h-[60vh] rounded-lg mt-2 h-full overflow-y-auto shadow-lg space-y-2 text-sm lg:text-base">
                 {output.length > 0 ? (
                   output.map((line, index) => (
                     <pre key={index} className="whitespace-pre-wrap">
