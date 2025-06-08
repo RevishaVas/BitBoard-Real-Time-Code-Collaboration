@@ -112,7 +112,7 @@ sh -c "g++ /usr/src/app/userCode.cpp -o /usr/src/app/a.out && /usr/src/app/a.out
       console.log(`Result for room ${roomId}: ${result}`)
 
       try {
-        await pubClient.publish(roomId, result)
+        await pubClient.publish(roomId, JSON.stringify({ submissionId, output: result }))
       } catch (err) {
         console.error("Failed to publish result to Redis:", err)
       }

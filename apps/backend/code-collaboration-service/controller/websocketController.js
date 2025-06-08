@@ -18,12 +18,12 @@ export function handleWebSocketConnection(wss) {
   
   try {
     
-    console.log("JWT_SECRET in WS verify:", JSON.stringify(process.env.JWT_SECRET));
-
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const { userId, roomId } = decoded;
     
-
+    console.log("Incoming token:", token);
+    console.log("Decoded token:", decoded);
+    
     const roomData = await redis.get(`room:${roomId}`);
     const users = JSON.parse(roomData);
     const user = users.find(u => u.userId === userId);
@@ -47,7 +47,29 @@ export function handleWebSocketConnection(wss) {
 
     console.log(`[WS] ${name} (${userId}) connecting to room ${roomId}`);
 
+    // if (!roomStates[roomId]) {
+    //   roomStates[roomId] = {
+    //     users: [],
+    //     code: "",
+    //     language: "javascript",
+    //     input: "",
+    //     history: [],
+    //     lastActivity: Date.now()
+    //   };
+    // }
     if (!roomStates[roomId]) {
+    const savedState = await redis.get(`roomstate:${roomId}`);
+    if (savedState) {
+      const parsed = JSON.parse(savedState);
+      roomStates[roomId] = {
+        users: [],
+        code: parsed.code || "",
+        language: parsed.language || "javascript",
+        input: parsed.input || "",
+        history: [],
+        lastActivity: Date.now()
+      };
+    } else {
       roomStates[roomId] = {
         users: [],
         code: "",
@@ -57,6 +79,8 @@ export function handleWebSocketConnection(wss) {
         lastActivity: Date.now()
       };
     }
+  }
+
 
     const room = roomStates[roomId];
 
@@ -100,31 +124,96 @@ export function handleWebSocketConnection(wss) {
       subscriptions.add(roomId);
     }
 
-    ws.on("message", (msg) => {
+   
+    ws.on("message", async (msg) => {
       try {
         const data = JSON.parse(msg.toString());
         room.lastActivity = Date.now();
         
         switch (data.type) {
           case "code":
-            room.code = data.code;
-            room.history.push({ 
-              type: "code",
-              code: data.code,
-              sender: userId,
-              timestamp: Date.now()
-            });
-            broadcastToOthers(roomId, userId, data);
+            if (room.code !== data.code) {
+              room.code = data.code;
+              await redis.set(`roomstate:${roomId}`, JSON.stringify({
+                code: room.code,
+                language: room.language,
+                input: room.input
+              }));
+             
+              broadcastToRoom(roomId, {
+                type: "code",
+                code: data.code,
+                senderId: userId,
+                timestamp: Date.now()
+              });
+            }
             break;
             
           case "language":
             room.language = data.language;
-            broadcastToOthers(roomId, userId, data);
+            broadcastToRoom(roomId, {
+              type: "language",
+              language: data.language,
+              senderId: userId,
+              timestamp: Date.now()
+            });
             break;
             
           case "input":
             room.input = data.input;
-            broadcastToOthers(roomId, userId, data);
+            broadcastToRoom(roomId, {
+              type: "input",
+              input: data.input,
+              senderId: userId,
+              timestamp: Date.now()
+            });
+            break;
+          case "userJoined":
+            const newUser = room.users.find(u => u.userId === data.userId);
+            if (newUser) {
+              newUser.ws.send(JSON.stringify({
+                type: "allData",
+                code: room.code,
+                language: room.language,
+                input: room.input,
+                users: room.users.map(u => ({ userId: u.userId, name: u.name })),
+                output: room.history
+                  .filter(item => item.type === "output")
+                  .map(item => item.message),
+                timestamp: Date.now()
+              }));
+            }
+            break;
+          case "output":
+            room.history.push({
+              type: "output",
+              message: data.message,
+              timestamp: Date.now()
+            });
+            broadcastToRoom(roomId, {
+              type: "output",
+              message: data.message,
+              timestamp: Date.now()
+            });
+            break;
+          case "requestForAllData":
+            const requester = room.users.find(u => u.userId === data.userId);
+            if (requester) {
+              requester.ws.send(JSON.stringify({
+                type: "allData",
+                code: room.code,
+                language: room.language,
+                input: room.input,
+                users: room.users.map(u => ({ 
+                  userId: u.userId, 
+                  name: u.name 
+                })),
+                output: room.history
+                  .filter(item => item.type === "output")
+                  .map(item => item.message),
+                timestamp: Date.now()
+              }));
+            }
             break;
             
           default:
@@ -134,7 +223,6 @@ export function handleWebSocketConnection(wss) {
         console.error("Message error:", e);
       }
     });
-
     const pingInterval = setInterval(() => {
       if (ws.readyState === ws.OPEN) {
         ws.ping();
@@ -212,6 +300,18 @@ function broadcastToRoom(roomId, message) {
   });
 }
 
+// function broadcastToOthers(roomId, senderId, message) {
+//   const room = roomStates[roomId];
+//   if (!room) return;
+
+//   room.users.forEach(({ userId, ws }) => {
+//     if (userId !== senderId && ws.readyState === ws.OPEN) {
+//       ws.send(JSON.stringify(message));
+//     }
+//   });
+// }
+
+
 function broadcastToOthers(roomId, senderId, message) {
   if (!roomStates[roomId]) return;
   roomStates[roomId].users.forEach(user => {
@@ -223,301 +323,3 @@ function broadcastToOthers(roomId, senderId, message) {
     }
   });
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// import { pub, sub } from "../config/redisClient.js";
-// import { cleanEmptyRoom } from "../utils/roomUtils.js";
-// import { wsRooms, subscriptions } from "../utils/wsState.js";
-
-// export function handleWebSocketConnection(wss) {
-//   wss.on("connection", async (ws, req) => {
-//     const query = new URLSearchParams(req.url?.split("?")[1]);
-//     const roomId = query.get("roomId");
-//     const userId = query.get("userId");
-//     const name = query.get("name");
-
-//     if (!roomId || !userId || !name) {
-//       ws.send(JSON.stringify({ error: "Missing required parameters" }));
-//       ws.close();
-//       return;
-//     }
-
-//     // Initialize room if not exists
-//     if (!wsRooms[roomId]) {
-//       wsRooms[roomId] = [];
-//       ws.send(JSON.stringify({
-//         isNewRoom: true,
-//         type: "roomId",
-//         roomId,
-//         message: `Created new room with ID: ${roomId}`
-//       }));
-//     } else {
-//       ws.send(JSON.stringify({
-//         isNewRoom: false,
-//         type: "roomId",
-//         roomId,
-//         message: `Joined room with ID: ${roomId}`
-//       }));
-//     }
-
-//     // Add user to room
-//     wsRooms[roomId].push({ userId, name, ws });
-//     broadcastUsersList(roomId);
-//  // NEW: Request current data if other users are present
-//     if (wsRooms[roomId].length > 1) {
-//       console.log(`[WS] Requesting initial data for new user ${userId}`);
-//       handleDataRequest(roomId, userId);
-//     }
-//     // Setup Redis subscription if not exists
-//     if (!subscriptions.has(roomId)) {
-//       await sub.subscribe(roomId, (message) => {
-//         if (!wsRooms[roomId]) return;
-//         try {
-//           const data = JSON.parse(message);
-//           // Handle execution results from workers
-//           if (data.type === "execution_result") {
-//             wsRooms[roomId].forEach(user => {
-//               user.ws.send(JSON.stringify(data));
-//             });
-//           }
-//         } catch (e) {
-//           // Fallback to simple broadcast
-//           wsRooms[roomId].forEach(user => {
-//             user.ws.send(JSON.stringify({ type: "broadcast", message }));
-//           });
-//         }
-//       });
-//       subscriptions.add(roomId);
-//     }
-
-//      // Add ping/pong for connection health
-//     const interval = setInterval(() => {
-//       if (ws.readyState === ws.OPEN) {
-//         ws.ping();
-//       } else {
-//         clearInterval(interval);
-//       }
-//     }, 30000);
-
-//     ws.on('pong', () => {
-//       // Connection is healthy
-//     });
-
-//     ws.on("message", (msg) => {
-//       try {
-//         const data = JSON.parse(msg.toString());
-        
-//         // Handle specific message types
-//         switch (data.type) {
-//           case "code":
-//           case "input":
-//           case "language":
-//           case "cursorPosition":
-//           case "submitBtnStatus":
-//             // Broadcast to all other users in room
-//             wsRooms[roomId].forEach(user => {
-//               if (user.userId !== userId) {
-//                 user.ws.send(msg.toString());
-//               }
-//             });
-//             break;
-            
-//           case "requestForAllData":
-//             handleDataRequest(roomId, userId);
-//             break;
-            
-//           case "allData":
-//             handleAllData(roomId, data);
-//             break;
-            
-//           default:
-//             // Default Redis pub/sub broadcast
-//             pub.publish(roomId, msg.toString());
-//         }
-//       } catch (e) {
-//         console.error("Message parsing error:", e);
-//       }
-//     });
-
-//     ws.on("close", async () => {
-//       if (!wsRooms[roomId]) return;
-      
-//       // Remove user from room
-//     //   wsRooms[roomId] = wsRooms[roomId].filter(user => user.userId !== userId);
-//      wsRooms[roomId] = wsRooms[roomId].filter(user => {
-//         if (user.userId === userId) {
-//           // Ensure WebSocket is properly closed
-//           if (user.ws.readyState === user.ws.OPEN) {
-//             user.ws.close();
-//           }
-//           return false;
-//         }
-//         return true;
-//       });
-//       broadcastUsersList(roomId);
-
-//       // Clean up if room is empty
-//       if (wsRooms[roomId].length === 0) {
-//         await cleanEmptyRoom(roomId);
-//       }
-//     });
-//     ws.on("error", (error) => {
-//       console.error(`[WS] Error for user ${userId}:`, error);
-//     });
-//   });
-// }
-
-// // Helper functions
-// function broadcastUsersList(roomId) {
-//   if (!wsRooms[roomId]) return;
-//   const users = wsRooms[roomId].map(({ userId, name }) => ({ userId, name }));
-//   wsRooms[roomId].forEach(user => {
-//     user.ws.send(JSON.stringify({ type: "users", users }));
-//   });
-// }
-
-// // IMPROVED: Better handling of data requests
-// function handleDataRequest(roomId, requestingUserId) {
-//   const requestingUser = wsRooms[roomId].find(u => u.userId === requestingUserId);
-//   if (!requestingUser) return;
-  
-//   const otherUser = wsRooms[roomId].find(user => user.userId !== requestingUserId);
-//   if (otherUser) {
-//     otherUser.ws.send(JSON.stringify({
-//       type: "requestForAllData",
-//       userId: requestingUserId
-//     }));
-//   } else {
-//     // No other users - send empty state
-//     requestingUser.ws.send(JSON.stringify({
-//       type: "allData",
-//       code: "",
-//       input: "",
-//       language: "javascript", // default
-//       currentButtonState: false,
-//       isLoading: false
-//     }));
-//   }
-// }
-// // function handleDataRequest(roomId, requestingUserId) {
-// //   const otherUser = wsRooms[roomId].find(user => user.userId !== requestingUserId);
-// //   if (otherUser) {
-// //     otherUser.ws.send(JSON.stringify({
-// //       type: "requestForAllData",
-// //       userId: requestingUserId
-// //     }));
-// //   }
-// // }
-
-// function handleAllData(roomId, data) {
-//   const targetUser = wsRooms[roomId].find(user => user.userId === data.userId);
-//   if (targetUser) {
-//     targetUser.ws.send(JSON.stringify({
-//       type: "allData",
-//       code: data.code,
-//       input: data.input,
-//       language: data.language,
-//       currentButtonState: data.currentButtonState,
-//       isLoading: data.isLoading
-//     }));
-//   }
-// }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// // import { pub, sub } from "../config/redisClient.js";
-// // const { cleanEmptyRoom } = await import("../utils/roomUtils.js");
-// // import { wsRooms, subscriptions } from "../utils/wsState.js";
-// // // const wsRooms = {};
-// // // const subscriptions = new Set();
-
-// // export function handleWebSocketConnection(wss) {
-// //   wss.on("connection", async (ws, req) => {
-// //     const query = new URLSearchParams(req.url?.split("?")[1]);
-// //     const roomId = query.get("roomId");
-// //     const userId = query.get("userId");
-// //     const name = query.get("name");
-
-// //     if (!roomId || !userId || !name) {
-// //       ws.send(JSON.stringify({ error: "Missing required parameters" }));
-// //       ws.close();
-// //       return;
-// //     }
-
-// //     if (!wsRooms[roomId]) wsRooms[roomId] = [];
-// //     wsRooms[roomId].push({ userId, ws });
-
-// //     const users = wsRooms[roomId].map((u) => u.userId);
-// //     wsRooms[roomId].forEach((u) => u.ws.send(JSON.stringify({ type: "users", users })));
-
-// //     if (!subscriptions.has(roomId)) {
-// //       await sub.subscribe(roomId, (message) => {
-// //         if (!wsRooms[roomId]) return;
-// //         wsRooms[roomId].forEach((u) => u.ws.send(JSON.stringify({ type: "broadcast", message })));
-// //       });
-// //       subscriptions.add(roomId);
-// //     }
-
-// //     ws.on("message", (msg) => {
-// //       pub.publish(roomId, msg.toString());
-// //     });
-
-// //     ws.on("close", async () => {
-// //       if (!wsRooms[roomId]) return;
-// //       wsRooms[roomId] = wsRooms[roomId].filter((u) => u.userId !== userId);
-
-// //       const updatedUsers = wsRooms[roomId].map((u) => u.userId);
-// //       wsRooms[roomId].forEach((u) => u.ws.send(JSON.stringify({ type: "users", users: updatedUsers })));
-
-// //       if (wsRooms[roomId].length === 0) {
-
-// //         await cleanEmptyRoom(roomId);
-// //         // delete wsRooms[roomId];
-// //         // if (subscriptions.has(roomId)) {
-// //         //   await sub.unsubscribe(roomId);
-// //         //   subscriptions.delete(roomId);
-// //         // }
-// //       }
-// //     });
-// //   });
-// // }
