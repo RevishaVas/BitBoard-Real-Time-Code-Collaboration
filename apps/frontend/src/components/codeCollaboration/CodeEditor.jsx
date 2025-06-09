@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react"
+
+import React, { useState, useEffect,useCallback  } from "react"
 import MonacoEditor from "@monaco-editor/react"
 import { userAtom } from "./atoms/userAtom"
 import { useRecoilState } from "recoil"
@@ -7,20 +8,171 @@ import { socketAtom } from "./atoms/socketAtom"
 import { useNavigate, useParams } from "react-router-dom"
 import { connectedUsersAtom } from "./atoms/connectedUsersAtom"
 import { IP_ADDRESS } from "../../Globle"
+import { useSubmitCodeMutation } from '../../redux/slices/api/codeCollaborationApi.js';
+import CodeCollaborationPage from "../../pages/CodeCollaborationPage.jsx"
 
 const CodeEditor = () => {
-  const [code, setCode] = useState("// Write your code here...")
-  const [language, setLanguage] = useState("javascript")
-  const [output, setOutput] = useState([]) 
-  const [socket, setSocket] = useRecoilState(socketAtom)
-  const [isLoading, setIsLoading] = useState(false) 
-  const [currentButtonState, setCurrentButtonState] = useState("Run")
-  const [input, setInput] = useState("") 
-  const [user, setUser] = useRecoilState(userAtom)
-  const navigate = useNavigate()
+   const [code, setCode] = useState("# Write your code here...");
+  const [language, setLanguage] = useState("Python");
+  const [output, setOutput] = useState([]); 
+  const [socket, setSocket] = useRecoilState(socketAtom);
+  const [isLoading, setIsLoading] = useState(false);
+  const [currentButtonState, setCurrentButtonState] = useState("Submit Code");
+  const [input, setInput] = useState(""); 
+  const [user, setUser] = useRecoilState(userAtom);
+  const navigate = useNavigate();
 
-  const [connectedUsers, setConnectedUsers] = useRecoilState(connectedUsersAtom)
-  const parms = useParams()
+  const [connectedUsers, setConnectedUsers] = useRecoilState(connectedUsersAtom);
+  const parms = useParams();
+  const [submitCode] = useSubmitCodeMutation();
+
+ 
+const safeSend = useCallback((data) => {
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    try {
+      socket.send(JSON.stringify(data));
+    } catch (err) {
+      console.error("Error sending WebSocket message:", err);
+      
+    }
+  } else {
+    console.warn("WebSocket not ready, queuing message:", data);
+    
+  }
+}, [socket]);
+
+
+useEffect(() => {
+  if (socket) {
+    const interval = setInterval(() => {
+      if (socket.readyState === WebSocket.CLOSED) {
+        console.log("WebSocket disconnected, attempting reconnect...");
+      
+         connectWebSocket();
+      }
+    }, 5000);
+    return () => clearInterval(interval);
+  }
+}, [socket]);
+
+useEffect(() => {
+  if (socket) {
+    const handleCodeChange = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === "code" && data.senderId !== user.id) {
+          setCode(data.code);
+        }
+      } catch (err) {
+        console.error("Error handling code change:", err);
+      }
+    };
+
+    socket.addEventListener("message", handleCodeChange);
+    return () => {
+      socket.removeEventListener("message", handleCodeChange);
+    };
+  }
+}, [socket, user.id]);
+
+useEffect(() => {
+  if (socket) {
+    const handleOutput = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === "output") {
+          setOutput(prev => [...prev, data.message]);
+        }
+      } catch (err) {
+        console.error("Error handling output:", err);
+      }
+    };
+
+    socket.addEventListener("message", handleOutput);
+    return () => {
+      socket.removeEventListener("message", handleOutput);
+    };
+  }
+}, [socket]);
+
+useEffect(() => {
+  if (!socket || socket.readyState !== WebSocket.OPEN) return;
+
+  const onMessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      console.log("Received message:", data); 
+      
+      switch (data.type) {
+         case "roomState":  
+          setCode(data.code || "");
+          setLanguage(data.language || "Python");
+          setInput(data.input || "");
+          setConnectedUsers(data.users || []);
+          setOutput(data.history?.filter(item => item.type === "output")?.map(item => item.message) || []);
+          break;
+        case "users":
+          setConnectedUsers(data.users);
+          break;
+        case "code":
+          if (code !== data.code) {
+            setCode(data.code);
+          }
+          break;
+        case "userJoined":
+         
+          if (data.userId !== user.id) {
+            safeSend({
+              type: "allData",
+              code,
+              language,
+              input,
+              users: connectedUsers,
+              output,
+              roomId: user.roomId
+            });
+          }
+          break;
+        case "language":
+          setLanguage(data.language);
+          break;
+        case "input":
+          setInput(data.input);
+          break;
+        case "output":
+          setOutput(prev => [...prev, data.message]);
+          handleButtonStatus("Submit Code", false);
+          break;
+        case "allData":
+          if (data.code !== undefined && data.code !== null) setCode(data.code);
+          if (data.input !== undefined && data.input !== null) setInput(data.input);
+          if (data.language !== undefined && data.language !== null) setLanguage(data.language);
+          if (data.users !== undefined && data.users !== null) setConnectedUsers(data.users);
+          if (data.output !== undefined && data.output !== null) {
+            setOutput(Array.isArray(data.output) ? data.output : [data.output]);
+          }
+          break;
+      }
+    } catch (err) {
+      console.error("Socket message error:", err);
+    }
+  };
+
+  socket.addEventListener("message", onMessage);
+  
+  if (socket.readyState === WebSocket.OPEN) {
+    console.log("Requesting initial data..."); 
+    socket.send(JSON.stringify({
+      type: "requestForAllData",
+      userId: user.id,
+      roomId: user.roomId
+    }));
+  }
+
+  return () => {
+    socket.removeEventListener("message", onMessage);
+  };
+}, [socket, user.id, user.roomId]);
 
   const handleSubmit = async () => {
     handleButtonStatus("Compiling...", true)
@@ -31,25 +183,33 @@ const CodeEditor = () => {
       input
     }
 
-    socket?.send(user?.id ? user.id : "")
+     try {
+      const response = await submitCode(submission).unwrap(); 
+      console.log("Code submission response:", response);
+      
+      
+    safeSend({
+      type: "output",
+      message: response.output || "Execution completed.",
+      roomId: user.roomId
+    });
 
-    const res = await fetch(`http://${IP_ADDRESS}:3000/submit`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(submission)
-    })
+   
+    setOutput(prev => [...prev, response.output || "Execution completed."]);
+    } catch (err) {
+      console.error("Code submission error:", err);
 
-    handleButtonStatus("Compiling...", true)
+    safeSend({
+      type: "output",
+      message: "Error submitting code. Please try again.",
+      roomId: user.roomId
+    });
 
-    if (!res.ok) {
-      setOutput(prevOutput => [
-        ...prevOutput,
-        "Error submitting code. Please try again."
-      ])
-      handleButtonStatus("Submit Code", false)
+    setOutput(prev => [...prev, "Error submitting code. Please try again."]);
+    }finally {
+    handleButtonStatus("Submit Code", false);
     }
+   
   }
 
   const handleInputChange = e => {
@@ -100,7 +260,8 @@ const CodeEditor = () => {
           JSON.stringify({
             type: "code",
             code: editor.getValue(),
-            roomId: user.roomId
+            roomId: user.roomId,
+            senderId: user.id
           })
         )
       })
@@ -141,7 +302,7 @@ const CodeEditor = () => {
                   onChange={e => handleLanguageChange(e.target.value)}
                   className="bg-[#2e2e2e] h-10 text-white px-3 lg:px-4 py-2 rounded-lg focus:outline-none shadow-lg transition duration-300"
                 >
-                  <option value="javascript">JavaScript</option>
+                  {/* <option value="javascript">JavaScript</option> */}
                   <option value="python">Python</option>
                  
                 </select>
@@ -165,10 +326,10 @@ const CodeEditor = () => {
                 <h2 className="text-lg lg:text-xl font-bold text-gray-400">
                   Users:
                 </h2>
-                <div className="bg-[#1f1f1f] text-green-400 p-4 rounded-lg mt-2 overflow-y-auto shadow-lg max-h-40 lg:max-h-60">
+                <div className="bg-[#2e2e2e] text-green-400 p-4 rounded-lg mt-2 overflow-y-auto shadow-lg max-h-40 lg:max-h-60">
                   {connectedUsers.length > 0 ? (
                     connectedUsers.map((user, index) => (
-                      <div key={index} className="flex items-center space-x-2">
+                      <div key={index} className="flex items-center space-x-2 mt-2">
                         <div className="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center">
                           {user.name.charAt(0).toUpperCase()}
                         </div>
@@ -189,7 +350,7 @@ const CodeEditor = () => {
                 <h2 className="text-lg lg:text-xl font-bold text-gray-400">
                   Invitation Code:
                 </h2>
-                <div className="bg-[#1f1f1f] text-green-400 p-4 rounded-lg mt-2 overflow-y-auto shadow-lg max-h-40 lg:max-h-60">
+                <div className="bg-[#2e2e2e] text-green-400 p-4 rounded-lg mt-2 overflow-y-auto shadow-lg max-h-40 lg:max-h-60">
                   {user.roomId.length > 0 ? (
                     <pre className="whitespace-pre-wrap text-sm lg:text-base">
                       {user.roomId}
@@ -213,7 +374,7 @@ const CodeEditor = () => {
                 </button>
               </div>
 
-              <div className="bg-[#1f1f1f] text-green-400 p-4 max-h-[60vh] rounded-lg mt-2 h-full overflow-y-auto shadow-lg space-y-2 text-sm lg:text-base">
+              <div className="bg-[#2e2e2e] text-green-400 p-4 max-h-[60vh] rounded-lg mt-2 h-full overflow-y-auto shadow-lg space-y-2 text-sm lg:text-base">
                 {output.length > 0 ? (
                   output.map((line, index) => (
                     <pre key={index} className="whitespace-pre-wrap">

@@ -6,6 +6,8 @@ import { socketAtom } from './atoms/socketAtom';
 import { IP_ADDRESS } from '../../Globle.js';
 import { FaArrowLeft } from 'react-icons/fa';
 import PropTypes from 'prop-types';
+import { useCreateRoomMutation, useJoinRoomMutation } from '../../redux/slices/api/codeCollaborationApi.js';
+import { connectedUsersAtom } from "./atoms/connectedUsersAtom.jsx";
 
 const CreateRoom = ({ onRoomCreated }) => {
   const [name, setName] = useState("");
@@ -21,6 +23,10 @@ const CreateRoom = ({ onRoomCreated }) => {
 
   const [isProcessing, setIsProcessing] = useState(false);
   const navigate = useNavigate();
+  const [connectedUsers, setConnectedUsers] = useRecoilState(connectedUsersAtom);
+  const [createRoom, { isLoading: isCreating }] = useCreateRoomMutation();
+  const [joinRoom, { isLoading: isJoining }] = useJoinRoomMutation();
+
 
   const generateId = () => {
     const id = Math.floor(Math.random() * 100000);
@@ -29,67 +35,64 @@ const CreateRoom = ({ onRoomCreated }) => {
   CreateRoom.propTypes = {
     onRoomCreated: PropTypes.func.isRequired
   };
-  const initializeSocket = () => {
-    setIsProcessing(true);
-    let GeneratedId = "";
-    if (user.id === "") {
-      GeneratedId = generateId();
-      setUser({
-        id: GeneratedId,
-        name: name,
-        roomId: ""
-      });
-    }
 
-    if (!socket || socket.readyState === WebSocket.CLOSED) {
-      const u = {
-        id: user.id === "" ? GeneratedId : user.id,
-        name: name
-      }
-      const ws = new WebSocket(`ws://${IP_ADDRESS}:5002?roomId=${mode === 'join' ? roomId : ''}&id=${u.id}&name=${u.name}`);
 
-      setSocket(ws);
+const initializeSocket = (response) => {
+  setIsProcessing(true);
+  
+  setUser({
+    id: response.userId,
+    name: name,
+    roomId: response.roomId,
+    roomName: response.roomName || "",
+    websocketToken: response.websocketToken || ""
+  });
 
-      ws.onopen = () => {
-        console.log("Connected to WebSocket");
-      };
+  if (!socket || socket.readyState === WebSocket.CLOSED) {
+    const ws = new WebSocket(`ws://localhost:5002?token=${response.websocketToken}`);
 
-      ws.onmessage = (event) => {
+    setSocket(ws);
+
+   ws.onopen = () => {
+    console.log("Connected to WebSocket");
+    ws.send(JSON.stringify({
+      type: "requestForAllData",
+      userId: response.userId,
+      roomId: response.roomId
+    }));
+  };
+    
+
+    ws.onmessage = (event) => {
+      try {
         const data = JSON.parse(event.data);
-        if (data.type === "roomId") {
-          setRoomId(data.roomId);
-          console.log("Room ID : ", data.roomId);
-          setUser({
-            id: user.id === "" ? GeneratedId : user.id,
-            name: name,
-            roomId: data.roomId
-          });
-
+        if (data.type === "users") {
+          setConnectedUsers(data.users);
           setIsProcessing(false);
-          alert(data.message);
           if (onRoomCreated) {
-            onRoomCreated(data.roomId);
+            onRoomCreated(response.roomId);
           }
-          // navigate("/code/" + data.roomId);
         }
-      };
-      
-      ws.onclose = () => {
-        console.log("WebSocket connection closed from register page");
-        setIsProcessing(false);
-      };
-      
-      ws.onerror = (error) => {
-        console.error("WebSocket error:", error);
-        setIsProcessing(false);
-      };
-    }
-    else {
-      setIsProcessing(false);
-    }
-  }
+      } catch (error) {
+        console.error("Error parsing WebSocket message:", error);
+      }
+    };
 
-  const handleCreateSubmit = (e) => {
+    ws.onclose = () => {
+      console.log("WebSocket connection closed");
+      setIsProcessing(false);
+    };
+
+    ws.onerror = (error) => {
+      console.error("WebSocket error:", error);
+      setIsProcessing(false);
+    };
+  } else {
+    setIsProcessing(false);
+  }
+};
+
+  const handleCreateSubmit = async (e) => {
     e.preventDefault();
     setNameError("");
     
@@ -100,13 +103,22 @@ const CreateRoom = ({ onRoomCreated }) => {
     
     if (isProcessing) return;
     
-    
-    if (onRoomCreated) {
-      onRoomCreated("");
-    }
+    if (isCreating) return;
+
+  try {
+    const response = await createRoom({ name }).unwrap();
+     if (!isProcessing)
+     {
+        initializeSocket(response);
+     }
+          
+   
+  } catch (err) {
+    console.error("Failed to create room:", err);
+  }
   }
 
-  const handleJoinSubmit = (e) => {
+  const handleJoinSubmit = async (e) => {
     e.preventDefault();
     setNameError("");
     setRoomIdError("");
@@ -128,9 +140,23 @@ const CreateRoom = ({ onRoomCreated }) => {
 
     if (isProcessing) return;
 
-  
-    if (onRoomCreated) {
-      onRoomCreated("");
+  if (isJoining) return;
+
+    try {
+      const response = await joinRoom({ name, roomId }).unwrap();
+      initializeSocket(response);
+      ws.send(JSON.stringify({
+        type: "userJoined",
+        userId: response.userId,
+        roomId: response.roomId
+      }));
+ 
+      if (onRoomCreated) {
+        onRoomCreated(roomId); 
+      }
+    } catch (err) {
+      console.error("Failed to join room:", err);
+      setRoomIdError("Failed to join room. Please check the workspace ID.");
     }
   }
 
