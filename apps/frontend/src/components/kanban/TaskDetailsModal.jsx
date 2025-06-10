@@ -1,20 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
+import kanbanSocket from '../../sockets/socket'; // 🔧 Adjust path if different
 
 export default function TaskDetailsModal({ task, onClose, onDelete }) {
-  const [showConfirm, setShowConfirm] = useState(false);
-
   if (!task) return null;
 
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editedTask, setEditedTask] = useState({ ...task });
+
+  const currentUser = useSelector((state) => state.auth.user);
+  const isAdmin = currentUser?.role === 'admin';
+
+  // ✅ Real-time sync for modal when task is updated externally
+  useEffect(() => {
+    const handleSocketUpdate = (updatedTask) => {
+      if (updatedTask._id === task._id) {
+        setEditedTask(updatedTask); // update modal data live
+      }
+    };
+
+    kanbanSocket.on('taskUpdated', handleSocketUpdate);
+
+    return () => {
+      kanbanSocket.off('taskUpdated', handleSocketUpdate);
+    };
+  }, [task._id]);
+
   const getImageSrc = () => {
-    if (task.attachment?.data && task.attachment?.contentType?.startsWith("image")) {
-      return `data:${task.attachment.contentType};base64,${task.attachment.data}`;
+    if (editedTask.attachment?.data && editedTask.attachment?.contentType?.startsWith("image")) {
+      return `data:${editedTask.attachment.contentType};base64,${editedTask.attachment.data}`;
     }
     return null;
   };
 
   const confirmDelete = async () => {
     try {
-      const response = await fetch(`/api/tasks/${task._id}`, { method: 'DELETE' });
+      const response = await fetch(`http://localhost:5000/api/tasks/${task._id}`, { method: 'DELETE' });
       if (response.ok) {
         onDelete(task._id);
         onClose();
@@ -27,19 +49,92 @@ export default function TaskDetailsModal({ task, onClose, onDelete }) {
     }
   };
 
+  const handleUpdate = async () => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/tasks/${task._id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: editedTask.title,
+          description: editedTask.description,
+          status: editedTask.status,
+          assignee: editedTask.assignee?._id || task.assignee?._id,
+          deadline: editedTask.deadline || task.deadline,
+        }),
+      });
+
+      if (!response.ok) {
+        let errText = "Unknown error";
+        try {
+          const err = await response.json();
+          errText = err.error || JSON.stringify(err);
+        } catch {}
+        alert("Failed to update: " + errText);
+        return;
+      }
+
+      setEditMode(false); // modal content will auto-update via socket listener
+    } catch (error) {
+      alert("Error updating task: " + error.message);
+    }
+  };
+
   return (
     <>
       <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
         <div className="bg-white dark:bg-gray-900 text-black dark:text-white p-6 rounded-2xl shadow-xl w-full max-w-md relative">
           <h2 className="text-xl font-bold mb-4">Task Details</h2>
           <div className="space-y-2">
-            <p><strong>Title:</strong> {task.title}</p>
-            <p><strong>Description:</strong> {task.description || '—'}</p>
-            <p><strong>Assignee:</strong> {task.assignee?.name || '—'}</p>
-            <p><strong>Status:</strong> {task.status || '—'}</p>
-            <p><strong>Deadline:</strong> {task.deadline ? new Date(task.deadline).toLocaleDateString() : '—'}</p>
-            <p><strong>Task created at:</strong> {task.createdAt ? new Date(task.createdAt).toLocaleString() : '—'}</p>
-            {task.attachment ? (
+            <p>
+              <strong>Title:</strong>{' '}
+              {editMode ? (
+                <input
+                  type="text"
+                  value={editedTask.title}
+                  onChange={(e) => setEditedTask({ ...editedTask, title: e.target.value })}
+                  className="p-1 border rounded w-full dark:bg-gray-800 dark:text-white"
+                />
+              ) : (
+                editedTask.title
+              )}
+            </p>
+
+            <p>
+              <strong>Description:</strong>{' '}
+              {editMode ? (
+                <textarea
+                  value={editedTask.description}
+                  onChange={(e) => setEditedTask({ ...editedTask, description: e.target.value })}
+                  className="p-1 border rounded w-full dark:bg-gray-800 dark:text-white"
+                />
+              ) : (
+                editedTask.description || '—'
+              )}
+            </p>
+
+            <p><strong>Assignee:</strong> {editedTask.assignee?.name || '—'}</p>
+
+            <p>
+              <strong>Status:</strong>{' '}
+              {editMode ? (
+                <select
+                  value={editedTask.status}
+                  onChange={(e) => setEditedTask({ ...editedTask, status: e.target.value })}
+                  className="p-1 border rounded w-full dark:bg-gray-800 dark:text-white"
+                >
+                  <option value="To Do">To Do</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Done">Done</option>
+                </select>
+              ) : (
+                editedTask.status || '—'
+              )}
+            </p>
+
+            <p><strong>Deadline:</strong> {editedTask.deadline ? new Date(editedTask.deadline).toLocaleDateString() : '—'}</p>
+            <p><strong>Task created at:</strong> {editedTask.createdAt ? new Date(editedTask.createdAt).toLocaleString() : '—'}</p>
+
+            {editedTask.attachment && (
               getImageSrc() ? (
                 <div>
                   <strong>Attachment:</strong>
@@ -55,16 +150,37 @@ export default function TaskDetailsModal({ task, onClose, onDelete }) {
                   <p className="text-sm italic text-gray-500">(Attached file is not an image)</p>
                 </div>
               )
-            ) : null}
+            )}
           </div>
 
-          <div className="mt-6 flex justify-between">
-            <button
-              onClick={() => setShowConfirm(true)}
-              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded shadow-md"
-            >
-              Delete Task
-            </button>
+          <div className="mt-6 flex justify-between flex-wrap gap-2">
+            {isAdmin && !editMode && (
+              <button
+                onClick={() => setEditMode(true)}
+                className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded shadow-md"
+              >
+                Edit Task
+              </button>
+            )}
+
+            {isAdmin && editMode && (
+              <button
+                onClick={handleUpdate}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow-md"
+              >
+                Save Changes
+              </button>
+            )}
+
+            {isAdmin && (
+              <button
+                onClick={() => setShowConfirm(true)}
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded shadow-md"
+              >
+                Delete Task
+              </button>
+            )}
+
             <button
               onClick={onClose}
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow-md"
@@ -75,7 +191,6 @@ export default function TaskDetailsModal({ task, onClose, onDelete }) {
         </div>
       </div>
 
-      {/* Confirmation Modal */}
       {showConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl text-center max-w-sm w-full">

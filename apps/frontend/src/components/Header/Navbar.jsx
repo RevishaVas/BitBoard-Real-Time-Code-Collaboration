@@ -12,12 +12,11 @@ export default function NavBar() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  const currentUser = useSelector((state) => state.auth.user); // ✅ Redux user
+  const currentUser = useSelector((state) => state.auth.user);
 
-  // ✅ Log user info when NavBar mounts or user changes
   useEffect(() => {
     if (currentUser) {
-      console.log(`✅ Logged in as: ${currentUser.name || currentUser.username}`);
+      console.log(` Logged in as: ${currentUser.name || currentUser.username}`);
     }
   }, [currentUser]);
 
@@ -51,11 +50,10 @@ export default function NavBar() {
       icon: <FaSignOutAlt style={{ fontSize: '18px' }} />,
       onClick: () => {
         dispatch(logout());
-        console.log("🚪 User logged out.");
+        console.log(" User logged out.");
         navigate("/");
       },
     },
-    
   ];
 
   return (
@@ -99,6 +97,14 @@ export default function NavBar() {
             </div>
 
             <div className="flex items-center ms-3">
+              {/* Welcome Text */}
+              {currentUser && (
+                <span className="text-white mr-4 hidden sm:inline">
+                  Welcome, {currentUser.name || currentUser.username}
+                </span>
+              )}
+
+              {/* User Avatar */}
               <button
                 onClick={toggleUserMenu}
                 type="button"
