@@ -42,6 +42,7 @@ const safeSend = useCallback((data) => {
 }, [socket]);
 
 
+
 useEffect(() => {
   if (socket) {
     const interval = setInterval(() => {
@@ -55,50 +56,47 @@ useEffect(() => {
   }
 }, [socket]);
 
-useEffect(() => {
-  if (socket) {
-    const handleCodeChange = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === "code" && data.senderId !== user.id) {
-          setCode(data.code);
-        }
-      } catch (err) {
-        console.error("Error handling code change:", err);
-      }
-    };
+// useEffect(() => {
+//   if (socket) {
+//     const handleCodeChange = (event) => {
+//       try {
+//         const data = JSON.parse(event.data);
+//         if (data.type === "code" && data.senderId !== user.id) {
+//           setCode(data.code);
+//         }
+//       } catch (err) {
+//         console.error("Error handling code change:", err);
+//       }
+//     };
 
-    socket.addEventListener("message", handleCodeChange);
-    return () => {
-      socket.removeEventListener("message", handleCodeChange);
-    };
-  }
-}, [socket, user.id]);
+//     socket.addEventListener("message", handleCodeChange);
+//     return () => {
+//       socket.removeEventListener("message", handleCodeChange);
+//     };
+//   }
+// }, [socket, user.id]);
 
-useEffect(() => {
-  if (socket) {
-    const handleOutput = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === "output") {
-          setOutput(prev => [...prev, data.message]);
-        }
-      } catch (err) {
-        console.error("Error handling output:", err);
-      }
-    };
+// useEffect(() => {
+//   if (socket) {
+//     const handleOutput = (event) => {
+//       try {
+//         const data = JSON.parse(event.data);
+//         if (data.type === "output") {
+//           setOutput(prev => [...prev, data.message]);
+//         }
+//       } catch (err) {
+//         console.error("Error handling output:", err);
+//       }
+//     };
 
-    socket.addEventListener("message", handleOutput);
-    return () => {
-      socket.removeEventListener("message", handleOutput);
-    };
-  }
-}, [socket]);
+//     socket.addEventListener("message", handleOutput);
+//     return () => {
+//       socket.removeEventListener("message", handleOutput);
+//     };
+//   }
+// }, [socket]);
 
-useEffect(() => {
-  if (!socket || socket.readyState !== WebSocket.OPEN) return;
-
-  const onMessage = (event) => {
+ const onMessage = useCallback((event) => {
     try {
       const data = JSON.parse(event.data);
       console.log("Received message:", data); 
@@ -140,7 +138,8 @@ useEffect(() => {
           setInput(data.input);
           break;
         case "output":
-          setOutput(prev => [...prev, data.message]);
+          setOutput([data.message]); 
+          // setOutput(prev => [...prev, data.message]);
           handleButtonStatus("Submit Code", false);
           break;
         case "allData":
@@ -156,7 +155,11 @@ useEffect(() => {
     } catch (err) {
       console.error("Socket message error:", err);
     }
-  };
+  }, [user, connectedUsers, code, language, input]);
+useEffect(() => {
+  if (!socket || socket.readyState !== WebSocket.OPEN) return;
+
+ 
 
   socket.addEventListener("message", onMessage);
   
@@ -194,8 +197,11 @@ useEffect(() => {
       roomId: user.roomId
     });
 
-   
-    setOutput(prev => [...prev, response.output || "Execution completed."]);
+
+    setOutput([response.output || "Execution completed."]);
+  //  setOutput([response.output || "Execution completed."]);
+
+    // setOutput(prev => [...prev, response.output || "Execution completed."]);
     } catch (err) {
       console.error("Code submission error:", err);
 
