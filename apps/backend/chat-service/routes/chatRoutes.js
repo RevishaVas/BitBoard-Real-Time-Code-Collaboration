@@ -9,12 +9,18 @@ router.post('/send', async (req, res) => {
     const msg = await Message.create({ sender, receiver, message });
 
     const io = req.app.get('io');
-    if (io) {
-      io.emit('newMessage', msg);
+    const redisPub = req.redisPub;
+
+    if (io && redisPub) {
+      console.log(' Publishing message to Redis:', msg);
+      await redisPub.publish('chat-messages', JSON.stringify(msg));
+    } else {
+      console.warn(' Redis or Socket.IO not available. Message not broadcasted.');
     }
 
     res.json(msg);
   } catch (err) {
+    console.error(' Error in /send route:', err);
     res.status(500).json({ error: 'Failed to send message' });
   }
 });
@@ -30,6 +36,7 @@ router.get('/history/:user1/:user2', async (req, res) => {
     }).populate('sender receiver', 'name role');
     res.json(history);
   } catch (err) {
+    console.error(' Error loading history:', err);
     res.status(500).json({ error: 'Failed to load chat history' });
   }
 });
@@ -39,11 +46,11 @@ router.get('/users', async (req, res) => {
     const users = await User.find();
     res.json(users);
   } catch (err) {
+    console.error(' Error fetching users:', err);
     res.status(500).json({ error: 'Failed to fetch users' });
   }
 });
 
-// GET /api/chat/conversations/:userId
 router.get('/conversations/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
@@ -61,9 +68,9 @@ router.get('/conversations/:userId', async (req, res) => {
     const users = await User.find({ _id: { $in: [...participantIds] } });
     res.json(users);
   } catch (err) {
+    console.error('Error fetching conversations:', err);
     res.status(500).json({ error: 'Failed to fetch conversations' });
   }
 });
-
 
 module.exports = router;

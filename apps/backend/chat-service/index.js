@@ -3,6 +3,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const { createClient } = require('redis');
 require('dotenv').config();
 
 const chatRoutes = require('./routes/chatRoutes');
@@ -24,6 +25,27 @@ mongoose.connect(process.env.MONGO_URI, {
   useUnifiedTopology: true,
 }).then(() => console.log("MongoDB connected to chatDB"))
   .catch((err) => console.error("MongoDB connection error:", err));
+
+// Redis Pub/Sub setup
+const redisPub = createClient();
+const redisSub = createClient();
+
+(async () => {
+  await redisPub.connect();
+  await redisSub.connect();
+
+  await redisSub.subscribe('chat-messages', (message) => {
+    const msg = JSON.parse(message);
+    io.emit('newMessage', msg); // Relay to all connected clients
+  });
+
+  console.log("Redis Pub/Sub ready");
+})();
+
+app.use((req, res, next) => {
+  req.redisPub = redisPub;
+  next();
+});
 
 app.use('/api/chat', chatRoutes);
 
