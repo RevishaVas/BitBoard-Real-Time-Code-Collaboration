@@ -1,22 +1,26 @@
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useSelector } from "react-redux";
+import LoginPage from './pages/LoginPage';
 
 import CodeCollaborationPage from "./pages/CodeCollaborationPage";
 import KanbanPage from "./pages/KanbanPage";
 import ChatPage from "./pages/ChatPage";
 import Layout from "./pages/Layout";
+
 import DummyUserLogin from "./components/DummyUserLogin";
 import NotificationCenter from "./components/notification/NotificationCenter";
 import VisualizationPage from "./components/graph/VisualizationPage";
 import VisualizationDashboard from "./pages/VisualizationDashboard";
 
+
 const App = () => {
   const currentUser = useSelector((state) => state.auth.user);
 
   return (
-  <div className="flex flex-col h-screen">
+    <div className="flex flex-col h-screen">
       <BrowserRouter>
+
         {!currentUser ? (
           <DummyUserLogin />
         ) : (
@@ -34,6 +38,7 @@ const App = () => {
             </Route>
           </Routes>
         )}
+
       </BrowserRouter>
     </div>
   );

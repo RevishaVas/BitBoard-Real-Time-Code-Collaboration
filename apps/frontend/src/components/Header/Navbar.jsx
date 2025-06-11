@@ -16,7 +16,15 @@ import {
 export default function NavBar() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+
   const currentUser = useSelector((state) => state.auth.user);
+
+  useEffect(() => {
+    if (currentUser) {
+      console.log(` Logged in as: ${currentUser.name || currentUser.username}`);
+    }
+  }, [currentUser]);
+
 
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -71,7 +79,7 @@ export default function NavBar() {
       icon: <FaSignOutAlt style={{ fontSize: '18px' }} />,
       onClick: () => {
         dispatch(logout());
-        console.log("🚪 User logged out.");
+        console.log(" User logged out.");
         navigate("/");
       },
     },
@@ -118,6 +126,7 @@ export default function NavBar() {
             </div>
 
             <div className="flex items-center ms-3">
+
               {/* 🔔 Notification Bell */}
               {currentUser && (
                 <div className="relative mr-4">
@@ -158,6 +167,16 @@ export default function NavBar() {
               )}
 
               {/* 👤 User Avatar */}
+
+              {/* Welcome Text */}
+              {currentUser && (
+                <span className="text-white mr-4 hidden sm:inline">
+                  Welcome, {currentUser.name || currentUser.username}
+                </span>
+              )}
+
+              {/* User Avatar */}
+
               <button
                 onClick={toggleUserMenu}
                 type="button"

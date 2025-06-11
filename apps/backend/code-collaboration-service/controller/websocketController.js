@@ -179,17 +179,23 @@ export function handleWebSocketConnection(wss) {
                 users: room.users.map(u => ({ userId: u.userId, name: u.name })),
                 output: room.history
                   .filter(item => item.type === "output")
-                  .map(item => item.message),
+                  .map(item => item.message)
+                  .slice(-1)[0] || "",
                 timestamp: Date.now()
               }));
             }
             break;
           case "output":
-            room.history.push({
+            // room.history.push({
+            //   type: "output",
+            //   message: data.message,
+            //   timestamp: Date.now()
+            // });
+            room.history = [{
               type: "output",
               message: data.message,
               timestamp: Date.now()
-            });
+            }];
             broadcastToRoom(roomId, {
               type: "output",
               message: data.message,
@@ -210,7 +216,8 @@ export function handleWebSocketConnection(wss) {
                 })),
                 output: room.history
                   .filter(item => item.type === "output")
-                  .map(item => item.message),
+                  .map(item => item.message)
+                  .slice(-1)[0] || "",
                 timestamp: Date.now()
               }));
             }
