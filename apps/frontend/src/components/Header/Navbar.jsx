@@ -1,29 +1,49 @@
 import React, { useState, useEffect } from 'react';
 import SideBar from './SideBar';
-import { FaSignOutAlt, FaUserCircle } from "react-icons/fa";
+import { FaSignOutAlt, FaUserCircle, FaBell } from "react-icons/fa";
 import { MdSettings } from "react-icons/md";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../../redux/slices/authSlice";
 import logo from '../../assets/logo.png'; 
 import network from '../../assets/network.png';
+import { 
+  connectNotificationSocket, 
+  subscribeToNotifications, 
+  disconnectNotificationSocket 
+} from '../../sockets/notificationSocket';
 
 export default function NavBar() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-
-  const currentUser = useSelector((state) => state.auth.user); // ✅ Redux user
-
-  // ✅ Log user info when NavBar mounts or user changes
-  useEffect(() => {
-    if (currentUser) {
-      console.log(`✅ Logged in as: ${currentUser.name || currentUser.username}`);
-    }
-  }, [currentUser]);
+  const currentUser = useSelector((state) => state.auth.user);
 
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [profilePicture, setProfilePicture] = useState(null);
+
+  // ✅ Notification states
+  const [notificationCount, setNotificationCount] = useState(0);
+  const [notifications, setNotifications] = useState([]);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
+
+  // ✅ Setup notifications after login
+  useEffect(() => {
+    if (!currentUser || !currentUser._id) return;
+
+    console.log("🟡 Connecting with userId:", currentUser._id);
+    connectNotificationSocket(currentUser._id);
+
+    subscribeToNotifications((notif) => {
+      console.log("🔔 Received notification:", notif);
+      setNotifications((prev) => [notif, ...prev]);
+      setNotificationCount((count) => count + 1);
+    });
+
+    return () => {
+      disconnectNotificationSocket();
+    };
+  }, [currentUser?._id]);
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -55,7 +75,6 @@ export default function NavBar() {
         navigate("/");
       },
     },
-    
   ];
 
   return (
@@ -99,6 +118,46 @@ export default function NavBar() {
             </div>
 
             <div className="flex items-center ms-3">
+              {/* 🔔 Notification Bell */}
+              {currentUser && (
+                <div className="relative mr-4">
+                  <button onClick={() => setIsNotifOpen(!isNotifOpen)}>
+                    <FaBell className="text-white w-6 h-6 cursor-pointer" />
+                    {notificationCount > 0 && (
+                      <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs rounded-full px-1">
+                        {notificationCount}
+                      </span>
+                    )}
+                  </button>
+
+                  {isNotifOpen && (
+                    <div className="absolute right-0 mt-2 w-80 bg-[#1f1f1f] text-white rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
+                      <div className="px-4 py-2 font-semibold border-b border-gray-700">
+                        Notifications
+                        <button
+                          onClick={() => setNotificationCount(0)}
+                          className="ml-2 text-xs text-blue-400 hover:underline"
+                        >
+                          Mark all as read
+                        </button>
+                      </div>
+                      <ul className="divide-y divide-gray-700">
+                        {notifications.length === 0 ? (
+                          <li className="px-4 py-2 text-sm text-gray-400">No new notifications</li>
+                        ) : (
+                          notifications.map((n, i) => (
+                            <li key={i} className="px-4 py-2 text-sm hover:bg-gray-800">
+                              {n.message}
+                            </li>
+                          ))
+                        )}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* 👤 User Avatar */}
               <button
                 onClick={toggleUserMenu}
                 type="button"

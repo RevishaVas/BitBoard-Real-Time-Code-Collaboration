@@ -7,6 +7,9 @@ import KanbanPage from "./pages/KanbanPage";
 import ChatPage from "./pages/ChatPage";
 import Layout from "./pages/Layout";
 import DummyUserLogin from "./components/DummyUserLogin";
+import NotificationCenter from "./components/notification/NotificationCenter";
+import VisualizationPage from "./components/graph/VisualizationPage";
+import VisualizationDashboard from "./pages/VisualizationDashboard";
 
 const App = () => {
   const currentUser = useSelector((state) => state.auth.user);
@@ -25,6 +28,9 @@ const App = () => {
               <Route path="code-collaboration" element={<CodeCollaborationPage />} />
               <Route path="kanban" element={<KanbanPage />} />
               <Route path="chat" element={<ChatPage />} />
+               <Route path="notifications" element={<NotificationCenter />} />
+               <Route path = "visualization" element={<VisualizationPage />} />
+              <Route path="visualization-dashboard" element={<VisualizationDashboard />} />
             </Route>
           </Routes>
         )}
