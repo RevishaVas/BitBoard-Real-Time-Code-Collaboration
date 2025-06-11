@@ -1,14 +1,22 @@
 const users = [
-  { name: 'Alice Johnson', dob: '1990-05-15', role: 'admin' },
-  { name: 'Bob Smith', dob: '1988-11-22', role: 'guest' },
-  { name: 'Charlie Brown', dob: '1995-07-09', role: 'admin' },
-  { name: 'Diana Prince', dob: '1992-03-12', role: 'guest' },
-  { name: 'Ethan Wright', dob: '1993-08-30', role: 'admin' },
-  { name: 'Fiona Davis', dob: '1991-01-19', role: 'guest' },
-  { name: 'George Lee', dob: '1987-04-05', role: 'admin' },
-  { name: 'Hannah Scott', dob: '1994-06-21', role: 'guest' },
-  { name: 'Ian Clark', dob: '1989-09-13', role: 'admin' },
-  { name: 'Julia Adams', dob: '1996-11-02', role: 'guest' },
+  { name: 'Ayesha Dhool', role: 'manager' },
+  { name: 'Bilal Hussain', role: 'manager' },
+  { name: 'Nayana Suresh', role: 'manager' },
+  { name: 'Praharsha Sanjay', role: 'member' },
+  { name: 'Praharsha Sarraju', role: 'member' },
+  { name: 'Revisha Vas', role: 'member' },
+  { name: 'Tara Kaur', role: 'member' }
 ];
 
 module.exports = users;
+
+// const users = [
+//   { name: 'Ethan Wright', role: 'manager' },
+//   { name: 'Fiona Davis', role: 'member' },
+//   { name: 'George Lee', role: 'manager' },
+//   { name: 'Hannah Scott', role: 'member' },
+//   { name: 'Ian Clark', role: 'manager' },
+//   { name: 'Julia Adams', role: 'member' },
+// ];
+
+// module.exports = users;

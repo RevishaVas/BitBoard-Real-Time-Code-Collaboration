@@ -27,14 +27,17 @@ router.post('/', upload.single('attachment'), async (req, res) => {
         contentType: req.file.mimetype,
       };
     }
-
     const task = new Task(taskData);
     await task.save();
 
-    await pub.publish('taskCreated', JSON.stringify(task));
-    res.status(201).json(task);
+    const populatedTask = await Task.findById(task._id).populate('assignee', 'name');
+
+    await pub.publish('taskCreated', JSON.stringify(populatedTask));
+
+    res.status(201).json(populatedTask);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    console.error('Task creation failed:', err);
+    res.status(400).json({ error: err.message || 'Task creation error' });
   }
 });
 

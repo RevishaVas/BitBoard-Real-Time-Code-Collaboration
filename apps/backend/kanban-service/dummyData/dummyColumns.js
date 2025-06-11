@@ -1,6 +1,5 @@
 module.exports = [
-  { name: 'Backlog' },
+  { name: 'To do' },
   { name: 'In Progress' },
-  { name: 'Review' },
   { name: 'Done' }
 ];

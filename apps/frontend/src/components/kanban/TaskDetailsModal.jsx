@@ -10,13 +10,12 @@ export default function TaskDetailsModal({ task, onClose, onDelete }) {
   const [editedTask, setEditedTask] = useState({ ...task });
 
   const currentUser = useSelector((state) => state.auth.user);
-  const isAdmin = currentUser?.role === 'admin';
+  const isManager = currentUser?.role === 'manager';
 
-  // ✅ Real-time sync for modal when task is updated externally
   useEffect(() => {
     const handleSocketUpdate = (updatedTask) => {
       if (updatedTask._id === task._id) {
-        setEditedTask(updatedTask); // update modal data live
+        setEditedTask(updatedTask);
       }
     };
 
@@ -28,7 +27,10 @@ export default function TaskDetailsModal({ task, onClose, onDelete }) {
   }, [task._id]);
 
   const getImageSrc = () => {
-    if (editedTask.attachment?.data && editedTask.attachment?.contentType?.startsWith("image")) {
+    if (
+      editedTask.attachment?.data &&
+      editedTask.attachment?.contentType?.startsWith("image")
+    ) {
       return `data:${editedTask.attachment.contentType};base64,${editedTask.attachment.data}`;
     }
     return null;
@@ -73,7 +75,7 @@ export default function TaskDetailsModal({ task, onClose, onDelete }) {
         return;
       }
 
-      setEditMode(false); // modal content will auto-update via socket listener
+      setEditMode(false);
     } catch (error) {
       alert("Error updating task: " + error.message);
     }
@@ -154,7 +156,7 @@ export default function TaskDetailsModal({ task, onClose, onDelete }) {
           </div>
 
           <div className="mt-6 flex justify-between flex-wrap gap-2">
-            {isAdmin && !editMode && (
+            {isManager && !editMode && (
               <button
                 onClick={() => setEditMode(true)}
                 className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded shadow-md"
@@ -163,7 +165,7 @@ export default function TaskDetailsModal({ task, onClose, onDelete }) {
               </button>
             )}
 
-            {isAdmin && editMode && (
+            {isManager && editMode && (
               <button
                 onClick={handleUpdate}
                 className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow-md"
@@ -172,7 +174,7 @@ export default function TaskDetailsModal({ task, onClose, onDelete }) {
               </button>
             )}
 
-            {isAdmin && (
+            {isManager && (
               <button
                 onClick={() => setShowConfirm(true)}
                 className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded shadow-md"
