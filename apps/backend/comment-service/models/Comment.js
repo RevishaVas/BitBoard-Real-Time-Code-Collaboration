@@ -1,4 +1,11 @@
 const mongoose = require('mongoose');
+
+const attachmentSchema = new mongoose.Schema({
+  filename: String,
+  contentType: String,
+  url: String, 
+});
+
 const reactionSchema = new mongoose.Schema({
   userId: String,  
   emoji: String    
@@ -11,6 +18,7 @@ const commentSchema = new mongoose.Schema({
    mentions: [{ type: String }], 
   parentCommentId: { type: String, default: null },
   createdAt: { type: Date, default: Date.now },
+    attachment: attachmentSchema,
    reactions: [reactionSchema],
 
 });
