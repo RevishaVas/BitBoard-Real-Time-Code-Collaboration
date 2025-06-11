@@ -4,14 +4,15 @@ const Comment = require('../models/Comment');
 const axios = require('axios');
 const upload = require('../middleware/uploadMiddleware'); 
 
-const KANBAN_URL = process.env.KANBAN_API_URL;
+const KANBAN_URL = process.env.KANBAN_API_URL; 
 
-//  Add comment with mentions, replies, and file upload
+//Add comment or reply, with mentions,attachment
 router.post('/:taskId/comments', upload.single('attachment'), async (req, res) => {
   const { author, text, parentCommentId, mentions } = req.body;
   const taskId = req.params.taskId;
 
   try {
+
     await axios.get(`${KANBAN_URL}/tasks/${taskId}`);
 
     let attachment;
@@ -35,12 +36,12 @@ router.post('/:taskId/comments', upload.single('attachment'), async (req, res) =
     await comment.save();
     res.status(201).json(comment);
   } catch (err) {
-    console.error('❌ Error:', err);
+    console.error(' Error:', err);
     res.status(500).json({ error: err.message || 'Internal server error' });
   }
 });
 
-// Edit comment (text, mentions, and update file if provided)
+// Edit comment including mentions and optional new file
 router.put('/comments/:commentId', upload.single('attachment'), async (req, res) => {
   const { text, mentions } = req.body;
 
@@ -79,7 +80,7 @@ router.delete('/comments/:commentId', async (req, res) => {
   }
 });
 
-// Get all comments for a task
+// Get ALL comments for a task 
 router.get('/:taskId/comments', async (req, res) => {
   try {
     const comments = await Comment.find({ taskId: req.params.taskId });
@@ -89,7 +90,7 @@ router.get('/:taskId/comments', async (req, res) => {
   }
 });
 
-// Get replies 
+// Get replies for a comment
 router.get('/comments/:commentId/replies', async (req, res) => {
   try {
     const replies = await Comment.find({ parentCommentId: req.params.commentId });
@@ -99,7 +100,7 @@ router.get('/comments/:commentId/replies', async (req, res) => {
   }
 });
 
-// reaction on comment
+// React reaction on comment
 router.patch('/comments/:commentId/reactions', async (req, res) => {
   const { userId, emoji } = req.body;
   const { commentId } = req.params;
@@ -113,9 +114,11 @@ router.patch('/comments/:commentId/reactions', async (req, res) => {
     );
 
     if (existingIndex !== -1) {
+    
       comment.reactions.splice(existingIndex, 1);
     } else {
-      comment.reactions.push({ userId, emoji }); 
+   
+      comment.reactions.push({ userId, emoji });
     }
 
     await comment.save();
