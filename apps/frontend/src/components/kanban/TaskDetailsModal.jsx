@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
-import kanbanSocket from '../../sockets/socket'; // 🔧 Adjust path if different
+import kanbanSocket from '../../sockets/socket';
+import CommentSection from '../comment/CommentSection';
 
 export default function TaskDetailsModal({ task, onClose, onDelete }) {
   if (!task) return null;
@@ -12,23 +13,24 @@ export default function TaskDetailsModal({ task, onClose, onDelete }) {
   const currentUser = useSelector((state) => state.auth.user);
   const isAdmin = currentUser?.role === 'admin';
 
-  // ✅ Real-time sync for modal when task is updated externally
   useEffect(() => {
     const handleSocketUpdate = (updatedTask) => {
-      if (updatedTask._id === task._id) {
-        setEditedTask(updatedTask); // update modal data live
+      if (updatedTask._id === task?._id) {
+        setEditedTask(updatedTask);
       }
     };
 
     kanbanSocket.on('taskUpdated', handleSocketUpdate);
-
     return () => {
       kanbanSocket.off('taskUpdated', handleSocketUpdate);
     };
-  }, [task._id]);
+  }, [task?._id]);
 
   const getImageSrc = () => {
-    if (editedTask.attachment?.data && editedTask.attachment?.contentType?.startsWith("image")) {
+    if (
+      editedTask.attachment?.data &&
+      editedTask.attachment?.contentType?.startsWith("image")
+    ) {
       return `data:${editedTask.attachment.contentType};base64,${editedTask.attachment.data}`;
     }
     return null;
@@ -36,7 +38,9 @@ export default function TaskDetailsModal({ task, onClose, onDelete }) {
 
   const confirmDelete = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/tasks/${task._id}`, { method: 'DELETE' });
+      const response = await fetch(`http://localhost:5000/api/tasks/${task._id}`, {
+        method: 'DELETE',
+      });
       if (response.ok) {
         onDelete(task._id);
         onClose();
@@ -73,7 +77,7 @@ export default function TaskDetailsModal({ task, onClose, onDelete }) {
         return;
       }
 
-      setEditMode(false); // modal content will auto-update via socket listener
+      setEditMode(false);
     } catch (error) {
       alert("Error updating task: " + error.message);
     }
@@ -82,17 +86,31 @@ export default function TaskDetailsModal({ task, onClose, onDelete }) {
   return (
     <>
       <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-        <div className="bg-white dark:bg-gray-900 text-black dark:text-white p-6 rounded-2xl shadow-xl w-full max-w-md relative">
-          <h2 className="text-xl font-bold mb-4">Task Details</h2>
-          <div className="space-y-2">
+        <div className="bg-[#1e1e1e] text-white p-6 rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+
+          {/* Title + Close button */}
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold">Task Details</h2>
+            <button
+              onClick={onClose}
+              title="Close"
+              className="text-gray-300 hover:text-red-500 text-2xl font-bold"
+            >
+              &times;
+            </button>
+          </div>
+
+          <div className="space-y-4">
             <p>
               <strong>Title:</strong>{' '}
               {editMode ? (
                 <input
                   type="text"
                   value={editedTask.title}
-                  onChange={(e) => setEditedTask({ ...editedTask, title: e.target.value })}
-                  className="p-1 border rounded w-full dark:bg-gray-800 dark:text-white"
+                  onChange={(e) =>
+                    setEditedTask({ ...editedTask, title: e.target.value })
+                  }
+                  className="w-full p-2 rounded border bg-[#2e2e2e] text-white"
                 />
               ) : (
                 editedTask.title
@@ -104,8 +122,10 @@ export default function TaskDetailsModal({ task, onClose, onDelete }) {
               {editMode ? (
                 <textarea
                   value={editedTask.description}
-                  onChange={(e) => setEditedTask({ ...editedTask, description: e.target.value })}
-                  className="p-1 border rounded w-full dark:bg-gray-800 dark:text-white"
+                  onChange={(e) =>
+                    setEditedTask({ ...editedTask, description: e.target.value })
+                  }
+                  className="w-full p-2 rounded border bg-[#2e2e2e] text-white"
                 />
               ) : (
                 editedTask.description || '—'
@@ -119,8 +139,10 @@ export default function TaskDetailsModal({ task, onClose, onDelete }) {
               {editMode ? (
                 <select
                   value={editedTask.status}
-                  onChange={(e) => setEditedTask({ ...editedTask, status: e.target.value })}
-                  className="p-1 border rounded w-full dark:bg-gray-800 dark:text-white"
+                  onChange={(e) =>
+                    setEditedTask({ ...editedTask, status: e.target.value })
+                  }
+                  className="w-full p-2 rounded border bg-[#2e2e2e] text-white"
                 >
                   <option value="To Do">To Do</option>
                   <option value="In Progress">In Progress</option>
@@ -147,13 +169,18 @@ export default function TaskDetailsModal({ task, onClose, onDelete }) {
               ) : (
                 <div>
                   <strong>Attachment:</strong>
-                  <p className="text-sm italic text-gray-500">(Attached file is not an image)</p>
+                  <p className="text-sm italic text-gray-400">(Attached file is not an image)</p>
                 </div>
               )
             )}
+
+            <hr className="my-4 border-gray-600" />
+            <h3 className="font-semibold mb-2">Comments</h3>
+            <CommentSection taskId={task._id} />
           </div>
 
-          <div className="mt-6 flex justify-between flex-wrap gap-2">
+          {/* Footer: Edit/Delete Buttons */}
+          <div className="mt-6 flex justify-start gap-2">
             {isAdmin && !editMode && (
               <button
                 onClick={() => setEditMode(true)}
@@ -180,26 +207,20 @@ export default function TaskDetailsModal({ task, onClose, onDelete }) {
                 Delete Task
               </button>
             )}
-
-            <button
-              onClick={onClose}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow-md"
-            >
-              Close
-            </button>
           </div>
         </div>
       </div>
 
+      {/* Confirm Delete Dialog */}
       {showConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl text-center max-w-sm w-full">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Are you sure?</h3>
-            <p className="text-gray-600 dark:text-gray-300 mb-6">This action will permanently delete the task.</p>
+          <div className="bg-[#2e2e2e] p-6 rounded-2xl shadow-xl text-center max-w-sm w-full text-white">
+            <h3 className="text-lg font-semibold mb-4">Are you sure?</h3>
+            <p className="text-gray-300 mb-6">This action will permanently delete the task.</p>
             <div className="flex justify-center gap-4">
               <button
                 onClick={() => setShowConfirm(false)}
-                className="bg-gray-300 hover:bg-gray-400 text-black px-4 py-2 rounded"
+                className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded"
               >
                 Cancel
               </button>

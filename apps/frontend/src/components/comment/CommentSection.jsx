@@ -1,6 +1,6 @@
-// CommentSection.jsx (Commit 1 - All features except socket connection)
 import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
+import commentSocket from "../sockets/commentSocket";
 import { AiOutlineLike } from "react-icons/ai";
 
 export default function CommentSection({ taskId }) {
@@ -28,6 +28,39 @@ export default function CommentSection({ taskId }) {
       .then((res) => res.json())
       .then(setUsers)
       .catch(console.error);
+  }, []);
+
+ // ✅ WebSocket real-time updates
+  useEffect(() => {
+    if (!commentSocket.connected) commentSocket.connect();
+
+    commentSocket.on("commentAdded", (newComment) => {
+      console.log("🆕 commentAdded received via socket:", newComment);
+      setComments((prev) => {
+        const exists = prev.find((c) => c._id === newComment._id);
+        return exists ? prev : [...prev, newComment];
+      });
+    });
+
+    commentSocket.on("commentUpdated", ({ _id, updates }) => {
+      console.log("✏️ commentUpdated via socket:", _id, updates);
+      setComments((prev) =>
+        prev.map((c) => (c._id === _id ? { ...c, ...updates } : c))
+      );
+    });
+
+    commentSocket.on("commentDeleted", (deletedId) => {
+      console.log("🗑️ commentDeleted via socket:", deletedId);
+      setComments((prev) =>
+        prev.filter((c) => c._id !== deletedId && c.parentCommentId !== deletedId)
+      );
+    });
+
+    return () => {
+      commentSocket.off("commentAdded");
+      commentSocket.off("commentUpdated");
+      commentSocket.off("commentDeleted");
+    };
   }, []);
 
   const handleTextChange = (e) => {
