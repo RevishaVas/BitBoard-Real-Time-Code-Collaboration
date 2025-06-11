@@ -11,11 +11,12 @@ export default function TaskDetailsModal({ task, onClose, onDelete }) {
   const [editedTask, setEditedTask] = useState({ ...task });
 
   const currentUser = useSelector((state) => state.auth.user);
-  const isAdmin = currentUser?.role === 'admin';
+  const isManager = currentUser?.role === 'manager';
 
   useEffect(() => {
     const handleSocketUpdate = (updatedTask) => {
-      if (updatedTask._id === task?._id) {
+      if (updatedTask._id === task._id) {
+
         setEditedTask(updatedTask);
       }
     };
@@ -179,9 +180,9 @@ export default function TaskDetailsModal({ task, onClose, onDelete }) {
             <CommentSection taskId={task._id} />
           </div>
 
-          {/* Footer: Edit/Delete Buttons */}
-          <div className="mt-6 flex justify-start gap-2">
-            {isAdmin && !editMode && (
+          <div className="mt-6 flex justify-between flex-wrap gap-2">
+            {isManager && !editMode && (
+
               <button
                 onClick={() => setEditMode(true)}
                 className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded shadow-md"
@@ -190,7 +191,7 @@ export default function TaskDetailsModal({ task, onClose, onDelete }) {
               </button>
             )}
 
-            {isAdmin && editMode && (
+            {isManager && editMode && (
               <button
                 onClick={handleUpdate}
                 className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow-md"
@@ -199,7 +200,7 @@ export default function TaskDetailsModal({ task, onClose, onDelete }) {
               </button>
             )}
 
-            {isAdmin && (
+            {isManager && (
               <button
                 onClick={() => setShowConfirm(true)}
                 className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded shadow-md"

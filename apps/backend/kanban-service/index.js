@@ -11,7 +11,7 @@ const userRoutes = require('./routes/userRoutes');
 const { pub, sub } = require('./redis/client');
 
 const app = express();
-const server = http.createServer(app); 
+const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: 'http://localhost:5173',
@@ -33,25 +33,28 @@ app.use('/api/tasks', taskRoutes);
 app.use('/api/columns', columnRoutes);
 app.use('/api/users', userRoutes);
 
-// WebSocket: client connection
+// WebSocket
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
 });
 
-// Redis Pub/Sub: subscribe and forward to clients via WebSocket
+// Redis subscriptions
 sub.subscribe('taskCreated', (msg) => {
   const task = JSON.parse(msg);
-  io.emit('taskCreated', task); // broadcast to all connected clients
+  console.log('[Redis → WS] taskCreated:', task.title, '| Assigned to:', task.assignee?.name || 'N/A');
+  io.emit('taskCreated', task);
 });
 
 sub.subscribe('taskUpdated', (msg) => {
   const task = JSON.parse(msg);
+  console.log('[Redis → WS] taskUpdated:', task.title, '| Assigned to:', task.assignee?.name || 'N/A');
   io.emit('taskUpdated', task);
 });
 
 sub.subscribe('taskDeleted', (msg) => {
-  const { id } = JSON.parse(msg);
-  io.emit('taskDeleted', { id });
+  const data = JSON.parse(msg);
+  console.log('[Redis → WS] taskDeleted:', data.id);
+  io.emit('taskDeleted', { id: data.id });
 });
 
 // Redis test
@@ -73,4 +76,3 @@ mongoose.connect(process.env.MONGO_URI, {
 }).catch(err => {
   console.error('MongoDB connection error:', err);
 });
-
