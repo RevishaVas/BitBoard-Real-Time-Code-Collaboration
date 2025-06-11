@@ -2,6 +2,7 @@ import { useState,useEffect } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import NavBar from '../components/Header/Navbar';
+import NotificationCenter from '../components/notification/NotificationCenter';
 const Layout = () => {
 
   const { user } = useSelector((state) => state.auth);
@@ -30,7 +31,7 @@ const Layout = () => {
     <>
     <div className='w-full h-screen flex flex-col md:flex-row bg-[#1b1b1b] dark:bg-[#1b1b1b]'>
       <NavBar />
-      
+      <NotificationCenter userId={user?._id} />
       <div className='flex-1 overflow-y-auto pt-16 sm:pt-0 sm:ml-64'>
         <div className='p-4 2xl:px-10 h-full'>
           <Outlet />

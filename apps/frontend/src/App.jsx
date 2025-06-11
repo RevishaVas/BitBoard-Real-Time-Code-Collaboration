@@ -8,42 +8,37 @@ import KanbanPage from "./pages/KanbanPage";
 import ChatPage from "./pages/ChatPage";
 import Layout from "./pages/Layout";
 
+import DummyUserLogin from "./components/DummyUserLogin";
+import NotificationCenter from "./components/notification/NotificationCenter";
+import VisualizationPage from "./components/graph/VisualizationPage";
+import VisualizationDashboard from "./pages/VisualizationDashboard";
+
+
 const App = () => {
   const currentUser = useSelector((state) => state.auth.user);
 
   return (
     <div className="flex flex-col h-screen">
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<LoginPage />} />
 
-          <Route element={<Layout />}>
-            <Route
-              path="code/:roomId"
-              element={
-                currentUser ? <CodeCollaborationPage /> : <Navigate to="/" />
-              }
-            />
-            <Route
-              path="code-collaboration"
-              element={
-                currentUser ? <CodeCollaborationPage /> : <Navigate to="/" />
-              }
-            />
-            <Route
-              path="kanban"
-              element={
-                currentUser ? <KanbanPage /> : <Navigate to="/" />
-              }
-            />
-            <Route
-              path="chat"
-              element={
-                currentUser ? <ChatPage /> : <Navigate to="/" />
-              }
-            />
-          </Route>
-        </Routes>
+        {!currentUser ? (
+          <DummyUserLogin />
+        ) : (
+          <Routes>
+            <Route path="/" element={<Navigate to="/kanban" />} />
+            <Route path="/code/:roomId" element={<CodeCollaborationPage />} />
+            <Route element={<Layout />}>
+              <Route index element={<CodeCollaborationPage />} />
+              <Route path="code-collaboration" element={<CodeCollaborationPage />} />
+              <Route path="kanban" element={<KanbanPage />} />
+              <Route path="chat" element={<ChatPage />} />
+               <Route path="notifications" element={<NotificationCenter />} />
+               <Route path = "visualization" element={<VisualizationPage />} />
+              <Route path="visualization-dashboard" element={<VisualizationDashboard />} />
+            </Route>
+          </Routes>
+        )}
+
       </BrowserRouter>
     </div>
   );
