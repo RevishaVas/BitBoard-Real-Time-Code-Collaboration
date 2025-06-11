@@ -35,7 +35,7 @@ export default function CommentSection({ taskId }) {
     if (!commentSocket.connected) commentSocket.connect();
 
     commentSocket.on("commentAdded", (newComment) => {
-      console.log("🆕 commentAdded received via socket:", newComment);
+      console.log("commentAdded received via socket:", newComment);
       setComments((prev) => {
         const exists = prev.find((c) => c._id === newComment._id);
         return exists ? prev : [...prev, newComment];
@@ -43,14 +43,14 @@ export default function CommentSection({ taskId }) {
     });
 
     commentSocket.on("commentUpdated", ({ _id, updates }) => {
-      console.log("✏️ commentUpdated via socket:", _id, updates);
+      console.log("commentUpdated via socket:", _id, updates);
       setComments((prev) =>
         prev.map((c) => (c._id === _id ? { ...c, ...updates } : c))
       );
     });
 
     commentSocket.on("commentDeleted", (deletedId) => {
-      console.log("🗑️ commentDeleted via socket:", deletedId);
+      console.log("commentDeleted via socket:", deletedId);
       setComments((prev) =>
         prev.filter((c) => c._id !== deletedId && c.parentCommentId !== deletedId)
       );

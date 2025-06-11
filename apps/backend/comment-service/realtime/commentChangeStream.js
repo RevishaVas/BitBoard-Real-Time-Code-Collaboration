@@ -21,11 +21,11 @@ function watchComments(io) {
         break;
 
       default:
-        console.log('📭 Unhandled operation type:', change.operationType);
+        console.log('Unhandled operation type:', change.operationType);
     }
   });
 
-  console.log('👁️ Watching comment collection for changes...');
+  console.log('Watching comment collection for changes...');
 }
 
 module.exports = watchComments;
