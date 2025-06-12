@@ -35,7 +35,7 @@ export default function VisualizationDashboard() {
           fetch(`${BASE_URL}/api/status/currentMilestone`).then(res => res.json()),
         ]);
 
-        console.log("📊 Stats fetched:", total, completed, overdue, nextMilestone, currentMilestone); // ✅ ✅ ✅ here
+        console.log(" Status fetched:", total, completed, overdue, nextMilestone, currentMilestone); 
 
         setStats({
           totalTasks: total.total || 0,
@@ -80,7 +80,7 @@ export default function VisualizationDashboard() {
           </div>
 
           {/* Filters */}
-          <FiltersPanel filter={filter} setFilter={setFilter} />
+          
 
           {/* Graph View */}
           <VisualizationPage filter={filter} />

@@ -8,7 +8,7 @@ export default function TimelineChart() {
   fetch("http://localhost:7001/api/status/tasks-by-date")
     .then((res) => res.json())
     .then((json) => {
-      console.log("📅 Timeline data:", json); // ⬅️ Add this
+      console.log("📅 Timeline data:", json); 
       setData(json);
     })
     .catch((err) => console.error("Failed to load timeline data", err));

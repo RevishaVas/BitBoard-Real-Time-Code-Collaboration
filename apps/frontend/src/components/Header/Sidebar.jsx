@@ -9,7 +9,7 @@ const linkData = [
   { label: 'Code Collaboration', link: '/code-collaboration', icon: <FaCodeBranch  size={18} /> },
   { label: 'Kanban Board', link: '/kanban', icon: <PiKanbanFill size={18} /> },
   { label: 'Chat', link: '/chat', icon: <FaUsers size={18} /> },
-  { label: 'Visualization', link: '/visualization', icon: <MdDashboard size={18} /> },
+  
   { label: 'Visualization Dashboard', link: '/visualization-dashboard', icon: <MdDashboard size={18} /> }
 
 ];

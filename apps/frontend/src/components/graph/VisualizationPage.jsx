@@ -1,6 +1,9 @@
+// Description: Enhanced VisualizationPage component for BitBoard graph visualization
 import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import axios from "axios";
 import ForceGraph2D from "react-force-graph-2d";
+
+const BASE_URL = "http://localhost:7001/api/status";
 
 const getNodeColor = (label) => {
   switch (label) {
@@ -25,24 +28,41 @@ const getNodeSize = (label) => {
   }
 };
 
-export default function VisualizationPage({filter}) {
+export default function VisualizationPage({ filter }) {
   const [graphData, setGraphData] = useState({ nodes: [], links: [] });
   const [selectedNode, setSelectedNode] = useState(null);
   const [highlightedNodes, setHighlightedNodes] = useState(new Set());
-
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [graphType, setGraphType] = useState("general");
+  const [selectedUser, setSelectedUser] = useState("");
   const graphRef = useRef();
 
   const fetchGraph = async () => {
     try {
       setLoading(true);
-      const res = await axios.get("http://localhost:7001/api/status/graph");
+      let url = `${BASE_URL}/graph`;
+      if (graphType === "critical-path") {
+        url = `${BASE_URL}/graph/critical-path`;
+      } else if (graphType === "user" && selectedUser.trim()) {
+        const encoded = encodeURIComponent(selectedUser.trim());
+        url = `${BASE_URL}/graph/user/${encoded}`;
+      }
+      const res = await axios.get(url);
       const formatted = {
         nodes: res.data.nodes.map(n => ({ ...n, id: String(n.id) })),
         links: res.data.links.map(l => ({ ...l, source: String(l.source), target: String(l.target) }))
       };
       setGraphData(formatted);
+      setError("");
+
+      // Auto-zoom and force setup after graph loads
+      setTimeout(() => {
+        if (graphRef.current) {
+          graphRef.current.zoomToFit(800, 150);
+          graphRef.current.d3Force("charge").strength(-80);
+        }
+      }, 300);
     } catch (err) {
       setError("Failed to load graph.");
     } finally {
@@ -52,7 +72,7 @@ export default function VisualizationPage({filter}) {
 
   useEffect(() => {
     fetchGraph();
-  }, []);
+  }, [graphType, selectedUser]);
 
   const handleNodeClick = useCallback((node) => {
     setSelectedNode(node);
@@ -82,15 +102,11 @@ export default function VisualizationPage({filter}) {
 
   return (
     <div className="flex flex-col p-4 gap-4 pt-16">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center flex-wrap gap-2">
         <h1 className="text-3xl font-bold">BitBoard Graph View</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <label className="font-medium">Filter:</label>
-          <select
-            className="p-1 rounded border"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-          >
+          {/* <select className="p-1 rounded border" value={filter} onChange={(e) => setFilter(e.target.value)}>
             <option>All</option>
             <option>User</option>
             <option>Task</option>
@@ -100,11 +116,25 @@ export default function VisualizationPage({filter}) {
             <option>Message</option>
             <option>Notification</option>
             <option>Project</option>
+          </select> */}
+          <select className="p-1 rounded border" value={graphType} onChange={(e) => setGraphType(e.target.value)}>
+            <option value="general">General</option>
+            <option value="critical-path">Critical Path</option>
+            <option value="user">User-specific</option>
           </select>
-          <button onClick={handleExport} className="ml-2 px-3 py-1 bg-blue-600 text-white rounded">
+          {graphType === "user" && (
+            <input
+              className="p-1 rounded border"
+              type="text"
+              placeholder="Enter username"
+              value={selectedUser}
+              onChange={(e) => setSelectedUser(e.target.value)}
+            />
+          )}
+          <button onClick={handleExport} className="px-3 py-1 bg-blue-600 text-white rounded">
             Export PNG
           </button>
-          <button onClick={() => { setSelectedNode(null); setHighlightedNodes(new Set()); }} className="ml-2 px-3 py-1 border rounded">
+          <button onClick={() => { setSelectedNode(null); setHighlightedNodes(new Set()); }} className="px-3 py-1 border rounded">
             Clear Selection
           </button>
         </div>
@@ -116,14 +146,21 @@ export default function VisualizationPage({filter}) {
         <p className="text-center text-red-500">{error}</p>
       ) : (
         <div className="flex flex-col md:flex-row gap-4">
-          <div className="md:w-3/4 bg-white dark:bg-gray-800 p-4 rounded shadow relative">
+          <div className="md:w-3/4 relative border-2 border-gray-600 rounded-xl shadow-lg bg-[#0b1120] p-2 max-h-[70vh] overflow-hidden">
             <ForceGraph2D
               ref={graphRef}
+              width={window.innerWidth * 0.65}
+              height={window.innerHeight * 0.65}
               graphData={filteredGraph}
               nodeRelSize={6}
-              cooldownTicks={50}
-            
+              cooldownTicks={100}
+              d3VelocityDecay={0.25}
               enableNodeDrag={true}
+              onNodeClick={handleNodeClick}
+              onNodeDragEnd={(node) => {
+                node.x = Math.max(Math.min(node.x, 500), -500);
+                node.y = Math.max(Math.min(node.y, 500), -500);
+              }}
               nodeCanvasObject={(node, ctx, globalScale) => {
                 const color = getNodeColor(node.label);
                 const size = getNodeSize(node.label);
@@ -155,7 +192,6 @@ export default function VisualizationPage({filter}) {
                 if (typeof start !== "object" || typeof end !== "object") return;
                 const midX = (start.x + end.x) / 2;
                 const midY = (start.y + end.y) / 2;
-
                 ctx.save();
                 ctx.translate(midX, midY);
                 ctx.rotate(Math.atan2(end.y - start.y, end.x - start.x));
@@ -168,8 +204,8 @@ export default function VisualizationPage({filter}) {
                 ctx.fillText(label, 0, -4);
                 ctx.restore();
               }}
-              onNodeClick={handleNodeClick}
             />
+            {/* Legend */}
             <div className="absolute top-4 right-4 bg-white dark:bg-gray-700 text-sm p-3 rounded shadow border space-y-1">
               {["User", "Task", "Status", "Room", "Comment", "Message", "Notification", "Project"].map(label => (
                 <div key={label}>
@@ -179,6 +215,8 @@ export default function VisualizationPage({filter}) {
               ))}
             </div>
           </div>
+
+          {/* Node Details Panel */}
           <div className="md:w-1/4 bg-white dark:bg-gray-900 p-4 rounded shadow h-full">
             <h2 className="text-xl font-semibold mb-2">Node Details</h2>
             {selectedNode ? (

@@ -15,7 +15,7 @@ app.use("/api/status", graphRoutes);
 
 
 app.get("/", (req, res) => {
-  res.send("✅ status-service is live!");
+  res.send(" status-service is live!");
 });
 
 app.listen(PORT, () => {
