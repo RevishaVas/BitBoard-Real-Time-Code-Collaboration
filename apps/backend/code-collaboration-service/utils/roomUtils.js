@@ -1,4 +1,4 @@
-import { redis } from "../config/redisClient.js";
+import { redis,pub, sub } from "../config/redisClient.js";
 import { wsRooms, subscriptions } from "./wsState.js";
 
 export async function generateUserId(name) {

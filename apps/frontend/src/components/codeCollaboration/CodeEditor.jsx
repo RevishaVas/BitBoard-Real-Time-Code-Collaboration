@@ -280,7 +280,7 @@ useEffect(() => {
 const handleLeaveRoom = async () => {
   setIsLeaving(true); 
   try {
-    await leaveRoom({
+    const res = await leaveRoom({
       roomId: user.roomId,
       userId: user.id
     }).unwrap();
@@ -289,7 +289,8 @@ const handleLeaveRoom = async () => {
     socket?.send(JSON.stringify({
       type: "userLeft",
       userId: user.id,
-      roomId: user.roomId
+      roomId: user.roomId,
+      isCreatorLeft: res.isCreatorLeft
     }));
 
     
