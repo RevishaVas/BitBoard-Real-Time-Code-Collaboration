@@ -70,32 +70,6 @@ if (cluster.isPrimary) {
           )} /usr/src/app/input.txt"`
           break
 
-        case "cpp":
-          codeFilePath = path.join(absoluteCodeDir, "userCode.cpp")
-          await fs.writeFile(codeFilePath, code)
-          dockerCommand = `docker run --rm --memory="256m" --cpus="1.0" --pids-limit 100 \
--v "${absoluteCodeDir.replace(/\\/g, "/")}:/usr/src/app" gcc:11  \
-sh -c "g++ /usr/src/app/userCode.cpp -o /usr/src/app/a.out && /usr/src/app/a.out < /usr/src/app/input.txt"`
-          break
-
-        case "rust":
-          codeFilePath = path.join(absoluteCodeDir, "userCode.rs")
-          await fs.writeFile(codeFilePath, code)
-          dockerCommand = `docker run --rm --memory="256m" --cpus="1.0" --pids-limit 100 -v "${absoluteCodeDir}:/usr/src/app" rust:latest sh -c "rustc /usr/src/app/userCode.rs -o /usr/src/app/a.out && /usr/src/app/a.out < /usr/src/app/input.txt"`
-          break
-
-        case "java":
-          codeFilePath = path.join(absoluteCodeDir, "UserCode.java")
-          await fs.writeFile(codeFilePath, code)
-          dockerCommand = `docker run --rm --memory="256m" --cpus="1.0" --pids-limit 100 -v "${absoluteCodeDir}:/usr/src/app" openjdk:17 sh -c "javac /usr/src/app/UserCode.java && java -cp /usr/src/app UserCode < /usr/src/app/input.txt"`
-          break
-
-        case "go":
-          codeFilePath = path.join(absoluteCodeDir, "userCode.go")
-          await fs.writeFile(codeFilePath, code)
-          dockerCommand = `docker run --rm --memory="256m" --cpus="1.0" --pids-limit 100 -v "${absoluteCodeDir}:/usr/src/app" golang:1.18 sh -c "go run /usr/src/app/userCode.go < /usr/src/app/input.txt"`
-          break
-
         default:
           throw new Error("Unsupported language")
       }

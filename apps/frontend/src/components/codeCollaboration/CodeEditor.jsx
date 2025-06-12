@@ -8,7 +8,7 @@ import { socketAtom } from "./atoms/socketAtom"
 import { useNavigate, useParams } from "react-router-dom"
 import { connectedUsersAtom } from "./atoms/connectedUsersAtom"
 import { IP_ADDRESS } from "../../Globle"
-import { useSubmitCodeMutation } from '../../redux/slices/api/codeCollaborationApi.js';
+import { useSubmitCodeMutation,useLeaveRoomMutation  } from '../../redux/slices/api/codeCollaborationApi.js';
 import CodeCollaborationPage from "../../pages/CodeCollaborationPage.jsx"
 
 const CodeEditor = () => {
@@ -21,10 +21,11 @@ const CodeEditor = () => {
   const [input, setInput] = useState(""); 
   const [user, setUser] = useRecoilState(userAtom);
   const navigate = useNavigate();
-
+  const [isLeaving, setIsLeaving] = useState(false);
   const [connectedUsers, setConnectedUsers] = useRecoilState(connectedUsersAtom);
   const parms = useParams();
   const [submitCode] = useSubmitCodeMutation();
+  const [leaveRoom] = useLeaveRoomMutation();
 
  
 const safeSend = useCallback((data) => {
@@ -275,6 +276,41 @@ useEffect(() => {
     }
   }
 
+
+const handleLeaveRoom = async () => {
+  setIsLeaving(true); 
+  try {
+    await leaveRoom({
+      roomId: user.roomId,
+      userId: user.id
+    }).unwrap();
+
+   
+    socket?.send(JSON.stringify({
+      type: "userLeft",
+      userId: user.id,
+      roomId: user.roomId
+    }));
+
+    
+    socket?.close();
+
+   
+    setUser({ ...user, roomId: "" });
+    setConnectedUsers([]);
+
+    
+    setTimeout(() => {
+      window.location.reload(); 
+    }, 300);
+
+  } catch (error) {
+    console.error("Error leaving room:", error);
+  } finally {
+    setIsLeaving(false);
+  }
+};
+
   return (
 <>
     <div className="mt-14 bg-[#2e2e2e] dark:bg-[#1b1b1b] z-10 rounded-lg">
@@ -286,7 +322,7 @@ useEffect(() => {
              
               <div className="flex gap-3 ">
               
-                <div className="flex justify-center">
+                <div className="flex justify-center gap-x-4">
                   <button
                     onClick={handleSubmit}
                     className={`bg-gradient-to-r bg-green-600 hover:bg-green-700 text-white px-3 lg:px-4 py-2 rounded-lg shadow-lg transition-transform duration-300 transform ${
@@ -301,6 +337,18 @@ useEffect(() => {
                       <span>{currentButtonState}</span>
                     </span>
                   </button>
+                   <button
+                      onClick={handleLeaveRoom}
+                      className={`bg-gradient-to-r bg-red-600 hover:bg-red-700 text-white px-3 lg:px-4 py-2 rounded-lg shadow-lg transition-transform duration-300 transform ${
+                        isLeaving ? "opacity-50 cursor-not-allowed" : ""
+                      }`}
+                      disabled={isLeaving}
+                    >
+                      <span className="flex items-center space-x-2">
+                        {isLeaving && <AiOutlineLoading3Quarters className="animate-spin" />}
+                        <span>{isLeaving ? "Leaving..." : "Leave Room"}</span>
+                      </span>
+                    </button>
                 </div>
                
                 <select
