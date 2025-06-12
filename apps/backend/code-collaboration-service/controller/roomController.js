@@ -82,17 +82,32 @@ export const leaveRoom = async (req, res) => {
   if (!roomData) return res.status(404).json({ error: "Room not found" });
 
   const room = JSON.parse(roomData);
-  const updatedRoom = room.filter((u) => u.userId !== userId);
-  await redis.set(roomKey, JSON.stringify(updatedRoom));
 
+  const leavingUser = room.find(u => u.userId === userId);
+  if (!leavingUser) {
+    return res.status(404).json({ error: "User not found in room" });
+  }
+
+  const isCreatorLeaving = leavingUser.isCreator || false;
+
+  const updatedRoom = room.filter((u) => u.userId !== userId);
 
   if (updatedRoom.length === 0) {
-    await cleanEmptyRoom(roomId);
+    await cleanEmptyRoom(roomId); 
+  } else {
+    await redis.set(roomKey, JSON.stringify(updatedRoom));
   }
+
+  // await redis.set(roomKey, JSON.stringify(updatedRoom));
+
+
+  // if (updatedRoom.length === 0) {
+  //   await cleanEmptyRoom(roomId);
+  // }
 
   const roomName = await redis.get(roomNameKey);
 
-  res.status(200).json({ message: "User removed", users: updatedRoom, roomId, roomName: roomName });
+  res.status(200).json({ message: "User removed", users: updatedRoom, roomId, roomName: roomName, isCreatorLeft: isCreatorLeaving });
 };
 
 export const getRoomName = async (req, res) => {
