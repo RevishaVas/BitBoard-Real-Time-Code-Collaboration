@@ -5,10 +5,10 @@ const { getSession } = require("../services/neo4j");
 const { neo4jQuery } = require("../services/neo4j");
 
 
-console.log("✅ graphstatus.js loaded");
+console.log(" graphstatus.js loaded");
 
 router.get("/tasks", async (req, res) => {
-  console.log("➡️  /api/status/tasks route HIT");
+  console.log(" /api/status/tasks route HIT");
   const session = getSession();
   try {
     const result = await session.run(`
@@ -80,8 +80,116 @@ router.get("/graph", async (req, res) => {
 });
 
 
+router.get("/graph/critical-path", async (req, res) => {
+  const session = getSession();
+  try {
+    const result = await session.run(`
+      MATCH path = (a:Task)-[:DEPENDS_ON*]->(b:Task)
+      WITH path, length(path) AS len
+      ORDER BY len DESC
+      LIMIT 1
+      UNWIND relationships(path) AS r
+      WITH startNode(r) AS n, endNode(r) AS m, r
+      RETURN n, r, m
+    `);
+
+    const nodes = new Map();
+    const links = [];
+
+    result.records.forEach((record) => {
+      const n = record.get("n");
+      const m = record.get("m");
+      const r = record.get("r");
+
+      const sourceId = n.identity.toString();
+      const targetId = m.identity.toString();
+
+      nodes.set(sourceId, {
+        id: sourceId,
+        label: n.labels[0],
+        ...n.properties,
+      });
+      nodes.set(targetId, {
+        id: targetId,
+        label: m.labels[0],
+        ...m.properties,
+      });
+
+      links.push({
+        source: sourceId,
+        target: targetId,
+        type: r.type,
+      });
+    });
+
+    res.json({
+      nodes: Array.from(nodes.values()),
+      links,
+    });
+  } catch (error) {
+    console.error("Neo4j graph fetch failed:", error);
+    res.status(500).json({ error: "Failed to load graph" });
+  } finally {
+    await session.close();
+  }
+});
+
+
+router.get("/graph/user/:name", async (req, res) => {
+  const session = getSession();
+  try {
+    const result = await session.run(`
+        MATCH (u:User {name: $username})-[:ASSIGNED_TO]->(t:Task)
+      OPTIONAL MATCH (t)-[r:DEPENDS_ON]->(d:Task)
+      RETURN t AS n, r, d AS m
+    `,
+    { username: req.params.name } 
+  );
+
+    const nodes = new Map();
+    const links = [];
+
+    result.records.forEach((record) => {
+      const n = record.get("n");
+      const m = record.get("m");
+      const r = record.get("r");
+
+      const sourceId = n.identity.toString();
+      const targetId = m.identity.toString();
+
+      nodes.set(sourceId, {
+        id: sourceId,
+        label: n.labels[0],
+        ...n.properties,
+      });
+      nodes.set(targetId, {
+        id: targetId,
+        label: m.labels[0],
+        ...m.properties,
+      });
+
+      links.push({
+        source: sourceId,
+        target: targetId,
+        type: r.type,
+      });
+    });
+
+    res.json({
+      nodes: Array.from(nodes.values()),
+      links,
+    });
+  } catch (error) {
+    console.error("Neo4j graph fetch failed:", error);
+    res.status(500).json({ error: "Failed to load graph" });
+  } finally {
+    await session.close();
+  }
+});
+
+
 router.get("/totalTasks", async (req, res) => {
-  const session = getSession(); // ✅ Add this line
+  const session = getSession(); 
   try {
     const result = await session.run(`MATCH (t:Task) RETURN count(t) AS total`);
     res.json({ total: result.records[0].get("total").toInt() });
@@ -96,7 +204,7 @@ router.get("/totalTasks", async (req, res) => {
 
 
 router.get("/completedTasks", async (req, res) => {
-  const session = getSession(); // ✅
+  const session = getSession(); 
   try {
     const result = await session.run(`
       MATCH (t:Task)-[:HAS_STATUS]->(s:Status {name: "Done"})
@@ -114,7 +222,7 @@ router.get("/completedTasks", async (req, res) => {
 
 
 router.get("/overdueTasks", async (req, res) => {
-  const session = getSession(); // ✅
+  const session = getSession(); 
   try {
     const result = await session.run(`
        MATCH (t:Task)-[:HAS_STATUS]->(s:Status)
@@ -254,7 +362,7 @@ router.get("/tasks-per-user", async (req, res) => {
       ORDER BY taskCount DESC
     `);
 
-    console.log("✅ Neo4j query result:", result);
+    console.log( "Neo4j query result:", result);
 
     const formatted = result.records.map((record) => ({
       user: record.get("user"),
@@ -263,7 +371,7 @@ router.get("/tasks-per-user", async (req, res) => {
 
     res.json(formatted);
   } catch (err) {
-    console.error("❌ REAL ERROR from Neo4j:", err); // SHOW THIS!
+    console.error(" REAL ERROR from Neo4j:", err); 
     res.status(500).json({ error: "Failed to fetch data" });
   }
 });
@@ -284,7 +392,7 @@ router.get("/top-blocked-tasks", async (req, res) => {
 
     res.json(formatted);
   } catch (err) {
-    console.error("❌ Error fetching top blocked tasks:", err);
+    console.error("Error fetching top blocked tasks:", err);
     res.status(500).json({ error: "Failed to fetch top blocked tasks" });
   }
 });
@@ -306,7 +414,7 @@ router.get("/overdue-by-status", async (req, res) => {
 
     res.json(formatted);
   } catch (err) {
-    console.error("❌ Error fetching overdue-by-status:", err);
+    console.error(" Error fetching overdue-by-status:", err);
     res.status(500).json({ error: "Failed to fetch overdue status breakdown" });
   }
 });
@@ -329,7 +437,7 @@ router.get("/tasks-by-date", async (req, res) => {
 
     res.json(formatted);
   } catch (err) {
-    console.error("❌ Error fetching tasks by date:", err);
+    console.error(" Error fetching tasks by date:", err);
     res.status(500).json({ error: "Failed to fetch task timeline" });
   }
 });

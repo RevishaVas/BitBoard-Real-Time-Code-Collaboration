@@ -3,6 +3,8 @@ const router = express.Router();
 const multer = require('multer');
 const Task = require('../model/Task');
 const { pub } = require('../redis/client');
+const axios = require('axios');
+const sendNotification= require('../config/sendNotifications');
 
 // Multer config (store in memory instead of saving to disk)
 const storage = multer.memoryStorage();
@@ -34,9 +36,18 @@ router.post('/', upload.single('attachment'), async (req, res) => {
 
     await pub.publish('taskCreated', JSON.stringify(populatedTask));
 
+    //Redis Stream: Send notification about task creation
+    await sendNotification({
+    type: 'task',
+    message: `Task "${task.title || 'Untitled'}" created`,
+    taskId: task._id.toString(),
+    assigneeId: task.assignee ? task.assignee.toString() : null,
+});
+
     res.status(201).json(populatedTask);
   } catch (err) {
     console.error('Task creation failed:', err);
+    console.error('Failed data:', req.body); 
     res.status(400).json({ error: err.message || 'Task creation error' });
   }
 });
@@ -107,6 +118,14 @@ router.patch('/:id', async (req, res) => {
     }
 
     await pub.publish('taskUpdated', JSON.stringify(updatedTask));
+
+    // Redis Stream: Send notification about task status change
+    await sendNotification({
+    type: 'task',
+    message: `Task "${updatedTask.title}" status changed to "${updatedTask.status}"`,
+    taskId: updatedTask._id.toString(),
+    assigneeId: updatedTask.assignee ? updatedTask.assignee.toString() : null
+});
     res.status(200).json(updatedTask); // ✅ Ensure JSON response always sent
   } catch (err) {
     console.error("PATCH error:", err);
@@ -124,6 +143,15 @@ router.delete('/:id', async (req, res) => {
     if (!task) return res.status(404).json({ error: 'Task not found' });
 
     await pub.publish('taskDeleted', JSON.stringify({ id: task._id }));
+
+        //Redis Stream: Send notification about task deletion
+       await sendNotification({
+      type: 'task',
+      message: `Task "${task.title || 'Untitled'}" was deleted`,
+      taskId: task._id.toString(),
+      assigneeId: task.assignee ? task.assignee.toString() : null,
+    });
+
     res.json({ message: 'Task deleted successfully' });
   } catch (err) {
     res.status(500).json({ error: err.message });

@@ -8,7 +8,7 @@ const UserTaskBarChart = () => {
     fetch("http://localhost:7001/api/status/tasks-per-user")
       .then((res) => res.json())
     .then((json) => {
-      console.log("📊 User Task Data:", json);  // <--- Add this
+      console.log(" User Task Data:", json);  
       setData(json);
     })
 

@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const dummyTasks = require('./dummyTasks');
 const Task = require('../model/Task');
 const User = require('../model/User');
+require('dotenv').config({ path: '../.env' });
 
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/tasksDB';
 
