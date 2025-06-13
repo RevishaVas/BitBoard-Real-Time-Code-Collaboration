@@ -15,3 +15,6 @@ npm-debug.log*
 
 # optional
 coverage
+
+# uploads (for file attachments)
+uploads/

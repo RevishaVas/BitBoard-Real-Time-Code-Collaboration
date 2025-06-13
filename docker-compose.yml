@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+
+
+  notification-service:
+    build: ./apps/backend/notification-service
+    ports:
+      - "4000:4000"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - redis
+

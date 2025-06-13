@@ -1,35 +1,47 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useSelector } from "react-redux";
+import LoginPage from './pages/LoginPage';
 
-function App() {
-  const [count, setCount] = useState(0)
+import CodeCollaborationPage from "./pages/CodeCollaborationPage";
+import KanbanPage from "./pages/KanbanPage";
+import ChatPage from "./pages/ChatPage";
+import Layout from "./pages/Layout";
+
+import DummyUserLogin from "./components/DummyUserLogin";
+import NotificationCenter from "./components/notification/NotificationCenter";
+import VisualizationPage from "./components/graph/VisualizationPage";
+import VisualizationDashboard from "./pages/VisualizationDashboard";
+
+
+const App = () => {
+  const currentUser = useSelector((state) => state.auth.user);
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
-}
+    <div className="flex flex-col h-screen">
+      <BrowserRouter>
 
-export default App
+        {!currentUser ? (
+          <DummyUserLogin />
+        ) : (
+          <Routes>
+            <Route path="/" element={<Navigate to="/kanban" />} />
+            <Route path="/code/:roomId" element={<CodeCollaborationPage />} />
+            <Route element={<Layout />}>
+              <Route index element={<CodeCollaborationPage />} />
+              <Route path="code-collaboration" element={<CodeCollaborationPage />} />
+              <Route path="kanban" element={<KanbanPage />} />
+              <Route path="chat" element={<ChatPage />} />
+               <Route path="notifications" element={<NotificationCenter />} />
+               <Route path = "visualization" element={<VisualizationPage />} />
+              <Route path="visualization-dashboard" element={<VisualizationDashboard />} />
+            </Route>
+          </Routes>
+        )}
+
+      </BrowserRouter>
+    </div>
+  );
+};
+
+export default App;
